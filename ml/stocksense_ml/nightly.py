@@ -120,10 +120,20 @@ def forecast_shop(
     return fc[["date", "product", "forecast"]], resolve_engine(engine), panel.n_days
 
 
-def run(t: Transport, now: datetime | None = None, dry_run: bool = False, engine: str = "auto") -> list[ShopResult]:
+def run(
+    t: Transport,
+    now: datetime | None = None,
+    dry_run: bool = False,
+    engine: str = "auto",
+    shop_ids: list[str] | None = None,
+) -> list[ShopResult]:
+    """Forecast every shop, or only ``shop_ids`` (used by the end-to-end tests)."""
     now = now or datetime.now(UTC)
     results = []
-    for shop in _select_all(t, "shops", {"select": "id,timezone", "order": "created_at"}):
+    query = {"select": "id,timezone", "order": "created_at"}
+    if shop_ids:
+        query["id"] = f"in.({','.join(shop_ids)})"
+    for shop in _select_all(t, "shops", query):
         sid = shop["id"]
         try:
             today = now.astimezone(ZoneInfo(shop.get("timezone") or "Asia/Kolkata")).date()
@@ -169,13 +179,13 @@ def run(t: Transport, now: datetime | None = None, dry_run: bool = False, engine
     return results
 
 
-def main(dry_run: bool = False, engine: str = "auto") -> int:
+def main(dry_run: bool = False, engine: str = "auto", shop_ids: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     url, key = os.environ.get("SUPABASE_URL", ""), os.environ.get("SUPABASE_SECRET_KEY", "")
     if not url or not key:
         log.error("Set SUPABASE_URL and SUPABASE_SECRET_KEY")
         return 2
-    results = run(rest_transport(url, key), dry_run=dry_run, engine=engine)
+    results = run(rest_transport(url, key), dry_run=dry_run, engine=engine, shop_ids=shop_ids)
     log.info("done: %d shops, %d forecast rows%s", len(results), sum(r.rows_written for r in results),
              " (dry run, nothing written)" if dry_run else "")
     return 0

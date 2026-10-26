@@ -201,7 +201,8 @@ def main(argv: list[str] | None = None) -> int:
     n = sub.add_parser("nightly", help="forecast every shop in Supabase and store the results")
     n.add_argument("--dry-run", action="store_true", help="read and forecast, but write nothing")
     n.add_argument("--engine", default="auto", choices=["auto", "lightgbm", "sklearn"])
-    n.set_defaults(func=lambda a: nightly_main(dry_run=a.dry_run, engine=a.engine))
+    n.add_argument("--shop", action="append", help="only this shop id (repeatable; default: all shops)")
+    n.set_defaults(func=lambda a: nightly_main(dry_run=a.dry_run, engine=a.engine, shop_ids=a.shop))
 
     d = sub.add_parser("demo-reset", help="reset the public demo account and reload its sample shop")
     d.add_argument("--dry-run", action="store_true", help="plan the reset, but call nothing")

@@ -15,7 +15,7 @@ M5 plan:
 - [x] Screenshots: `screenshots.yml` (manual) logs in as the demo user on the live site and pushes desktop + mobile PNGs to branch `m5-screenshots`; copy `docs/screenshots` from it (the build sandbox can't reach the live site or download artifacts). Re-run after UI changes.
 - [x] README showcase: live demo + credentials, screenshots, Mermaid architecture, forecast results, demo account, limitations
 - [ ] Real-data benchmark on Kaggle Store Item Demand (needs the data from somewhere the build sandbox can reach, e.g. a GitHub Actions run)
-- [ ] End-to-end tests of the main flows (sign-up → shop → import → stock → reorder)
+- [x] End-to-end tests (`e2e/`, Playwright Python + pytest, `.github/workflows/e2e.yml`): run on the live site after each production deploy and on demand; throwaway users flagged `app_metadata.e2e` are swept at start and end. `nightly --shop <id>` forecasts one shop. Covers sign-out/login re-check.
 - [ ] Mobile + accessibility pass (keyboard, contrast, screen-reader labels). Found in the mobile screenshots: the Reorder table is cut off sideways at 390 px, dashboard tabs are clipped ("Product…"), the shop name is hidden on small screens
 - [ ] Re-check sign-out/login on the live site; fix Render auto-deploy before any API change
 
