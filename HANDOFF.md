@@ -13,6 +13,12 @@ Acceptance criteria:
 - [ ] API `/health` live on Render; `/me` returns the user for a valid Supabase token
 - [ ] README setup reproduced on a clean machine (or Codespace)
 
+## Deployments
+
+- Supabase project `stocksense` (ref `jhiaiqhnidyqgagchzbp`, region ap-south-1, Free plan); new asymmetric JWT signing keys.
+- Vercel project `stocksense` (root `apps/web`, Hobby plan); auto-deploys `main`.
+- Render web service `stocksense-api` (Singapore, Free plan): https://stocksense-api-416u.onrender.com; auto-deploys `main`.
+
 ## Done
 
 - Next.js web app: landing, sign-up, login, email-confirmation callback, protected dashboard, sign-out (POST), error and 404 pages, security headers.
