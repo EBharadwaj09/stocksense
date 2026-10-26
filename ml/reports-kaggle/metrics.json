@@ -1,0 +1,74 @@
+{
+  "engine": "lightgbm",
+  "datasets": [
+    {
+      "dataset": "Kaggle Store Item Demand (public benchmark, 10 stores x 50 items, 2013-2017)",
+      "products": 500,
+      "days": 1826,
+      "first_day": "2013-01-01",
+      "last_day": "2017-12-31",
+      "origins": [
+        "2017-10-29",
+        "2017-11-05",
+        "2017-11-12",
+        "2017-11-19",
+        "2017-11-26",
+        "2017-12-03",
+        "2017-12-10",
+        "2017-12-17"
+      ],
+      "horizon": 14,
+      "scored_forecasts": 56000,
+      "metrics": {
+        "Naive (last day)": {
+          "MAE": 14.971,
+          "WAPE": 0.2816,
+          "Bias": 0.226,
+          "WAPE festive days": null
+        },
+        "Seasonal naive (same weekday)": {
+          "MAE": 10.1696,
+          "WAPE": 0.1913,
+          "Bias": 0.0507,
+          "WAPE festive days": null
+        },
+        "Moving average 7d": {
+          "MAE": 9.7266,
+          "WAPE": 0.1829,
+          "Bias": 0.0507,
+          "WAPE festive days": null
+        },
+        "Moving average 28d": {
+          "MAE": 11.0566,
+          "WAPE": 0.208,
+          "Bias": 0.093,
+          "WAPE festive days": null
+        },
+        "LightGBM": {
+          "MAE": 5.9165,
+          "WAPE": 0.1113,
+          "Bias": 0.0044,
+          "WAPE festive days": null
+        }
+      },
+      "gbm_wape_by_horizon": {
+        "1": 0.123,
+        "2": 0.116,
+        "3": 0.114,
+        "4": 0.107,
+        "5": 0.108,
+        "6": 0.105,
+        "7": 0.104,
+        "8": 0.124,
+        "9": 0.116,
+        "10": 0.115,
+        "11": 0.11,
+        "12": 0.109,
+        "13": 0.108,
+        "14": 0.108
+      },
+      "gbm_relative_improvement": 0.3917,
+      "synthetic": false
+    }
+  ]
+}

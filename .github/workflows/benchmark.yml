@@ -1,6 +1,6 @@
 name: Real-data benchmark
 
-# Backtests the forecasting model on Kaggle's "Store Item Demand Forecasting Challenge" (real sales,
+# Backtests the forecasting model on Kaggle's "Store Item Demand Forecasting Challenge" (public benchmark,
 # 10 stores x 50 items, 2013-2017) and pushes the report (never the data) to the `m5-benchmark` branch.
 #
 # Needs the repository secret KAGGLE_JSON: the contents of kaggle.json (Kaggle -> Settings -> API ->
@@ -60,7 +60,7 @@ jobs:
         run: |
           python -m stocksense_ml backtest --engine lightgbm \
             --data "$RUNNER_TEMP/kaggle/train.csv" \
-            --label "Kaggle Store Item Demand (real sales, 10 stores x 50 items, 2013-2017)" \
+            --label "Kaggle Store Item Demand (public benchmark, 10 stores x 50 items, 2013-2017)" \
             --max-series "${{ inputs.max_series }}" \
             --out reports-kaggle 2>&1 | tee benchmark.log
       - name: Report as annotations
