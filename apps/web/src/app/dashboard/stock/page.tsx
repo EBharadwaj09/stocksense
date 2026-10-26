@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getProductsWithStock } from "@/lib/data";
 import { formatDate, formatQty, requireShop } from "@/lib/shop";
 import { createClient } from "@/lib/supabase/server";
@@ -33,9 +34,15 @@ export default async function StockPage() {
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
       <section aria-labelledby="stock-heading" className="h-fit rounded-xl border border-slate-200 bg-white p-6">
-        <h1 id="stock-heading" className="mb-4 text-xl font-bold text-brand-900">
+        <h1 id="stock-heading" className="mb-1 text-xl font-bold text-brand-900">
           Update stock
         </h1>
+        <p className="mb-4 text-sm text-slate-600">
+          Counting many products?{" "}
+          <Link href="/dashboard/stock/count" className="font-semibold text-brand-700 underline underline-offset-2">
+            Enter a full stock count
+          </Link>
+        </p>
         {options.length === 0 ? <p className="text-sm text-slate-600">Add a product first.</p> : <StockForm products={options} />}
       </section>
 

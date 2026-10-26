@@ -40,6 +40,7 @@ export default async function ReorderPage() {
     .sort((a, b) => compareUrgency(a.plan, b.plan) || a.product.name.localeCompare(b.product.name));
   const toOrder = rows.filter((r) => r.plan.status === "order_now" || r.plan.status === "order_soon");
   const stale = run !== null && run.firstDay < today;
+  const noStockRecorded = products.length > 0 && products.every((p) => p.onHand <= 0);
 
   return (
     <div className="space-y-6">
@@ -60,6 +61,16 @@ export default async function ReorderPage() {
           )}
         </p>
       </div>
+
+      {noStockRecorded ? (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+          No stock is recorded yet, so every product shows &quot;Order now&quot;. Imported sales don&apos;t change stock.{" "}
+          <Link href="/dashboard/stock/count" className="font-semibold underline underline-offset-2">
+            Enter today&apos;s stock count
+          </Link>{" "}
+          to get real suggestions.
+        </p>
+      ) : null}
 
       {products.length === 0 ? (
         <p className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600">

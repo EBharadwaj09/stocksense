@@ -9,7 +9,7 @@ Read this first in any new chat or tool session, then update it at the end.
 M5 plan:
 
 - [x] Overview uses the same reorder rule as the Reorder page ("Order now" / "Order soon"; reorder point only when there is no forecast)
-- [ ] Bulk opening stock (enter today's count for every product on one page) — imported shops start at 0 stock, so everything shows "Order now"
+- [x] Stock count page (`/dashboard/stock/count`): type shelf counts for any products, difference saved as opening/adjustment movements; Reorder page points to it when no stock is recorded. Rules tested in `apps/web/src/lib/stock-count.ts`
 - [ ] Mobile + accessibility pass (keyboard, contrast, screen-reader labels)
 - [ ] End-to-end tests of the main flows (sign-up → shop → import → stock → reorder)
 - [ ] Final docs: README walkthrough, screenshots, limitations
@@ -78,7 +78,7 @@ M5 plan:
 
 ## Next task
 
-M5: bulk opening stock page next (see plan above).
+M5: owner tries the stock count page on the PR preview/live site; then mobile + accessibility pass.
 
 Workflow: schema changes = new file in `supabase/migrations/` + apply with the Supabase connector + regenerate `apps/web/src/lib/database.types.ts`. Feature work on a branch → PR → CI green → merge (Vercel deploys main).
 
