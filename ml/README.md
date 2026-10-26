@@ -42,3 +42,16 @@ To benchmark on public real data, download Kaggle's
 
 `stocksense_ml/festivals.csv` lists Gujarat-relevant festivals 2024–2027 (start, end, shopping lead days).
 Add next year's dates each year; days after the last listed year are treated as "no festival nearby".
+
+## Nightly forecasts (M4)
+
+`.github/workflows/forecast.yml` runs `python -m stocksense_ml nightly` at about 02:11 IST (and on demand from
+GitHub → Actions → Nightly forecast → Run workflow; tick "dry run" to test without writing). For each shop it reads
+`daily_sales` up to yesterday, trains LightGBM (or uses a 28-day average with under 60 days of history), and writes
+today + 13 days into `forecasts`, plus one `forecast_runs` row. The web app's Reorder page reads those tables.
+
+Why GitHub Actions and not the Render API: a forecast run peaks at ~270 MB and the free Render instance has 512 MB,
+sleeps when idle and has no persistent disk. Precomputing nightly costs nothing and keeps the dashboard fast.
+
+The job needs the repository secret `SUPABASE_SECRET_KEY` (a Supabase secret key; it bypasses row-level security,
+so it lives only in GitHub secrets, never in the web app or the repo).

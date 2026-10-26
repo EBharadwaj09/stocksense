@@ -9,6 +9,63 @@ export type Database = {
   };
   public: {
     Tables: {
+      forecast_runs: {
+        Row: {
+          first_day: string;
+          generated_at: string;
+          history_days: number;
+          horizon_days: number;
+          model: string;
+          note: string | null;
+          products: number;
+          shop_id: string;
+        };
+        Insert: {
+          first_day: string;
+          generated_at?: string;
+          history_days?: number;
+          horizon_days: number;
+          model: string;
+          note?: string | null;
+          products?: number;
+          shop_id: string;
+        };
+        Update: {
+          first_day?: string;
+          generated_at?: string;
+          history_days?: number;
+          horizon_days?: number;
+          model?: string;
+          note?: string | null;
+          products?: number;
+          shop_id?: string;
+        };
+        Relationships: [];
+      };
+      forecasts: {
+        Row: {
+          day: string;
+          generated_at: string;
+          product_id: string;
+          quantity: number;
+          shop_id: string;
+        };
+        Insert: {
+          day: string;
+          generated_at?: string;
+          product_id: string;
+          quantity: number;
+          shop_id: string;
+        };
+        Update: {
+          day?: string;
+          generated_at?: string;
+          product_id?: string;
+          quantity?: number;
+          shop_id?: string;
+        };
+        Relationships: [];
+      };
       products: {
         Row: {
           active: boolean;

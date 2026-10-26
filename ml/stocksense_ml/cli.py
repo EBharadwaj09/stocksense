@@ -18,6 +18,7 @@ import pandas as pd
 
 from .backtest import BacktestResult, forecast, run_backtest
 from .data import Panel, load_panel
+from .nightly import main as nightly_main
 from .synth import generate
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -174,6 +175,11 @@ def main(argv: list[str] | None = None) -> int:
     f.add_argument("--engine", default="auto", choices=["auto", "lightgbm", "sklearn"])
     f.add_argument("--max-series", type=int, default=None)
     f.set_defaults(func=cmd_forecast)
+
+    n = sub.add_parser("nightly", help="forecast every shop in Supabase and store the results")
+    n.add_argument("--dry-run", action="store_true", help="read and forecast, but write nothing")
+    n.add_argument("--engine", default="auto", choices=["auto", "lightgbm", "sklearn"])
+    n.set_defaults(func=lambda a: nightly_main(dry_run=a.dry_run, engine=a.engine))
 
     s = sub.add_parser("synth", help="write the synthetic dataset as CSV")
     s.add_argument("--out", default="synthetic-sales.csv")
