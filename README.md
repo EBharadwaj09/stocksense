@@ -17,6 +17,7 @@ Browser ──► Next.js web app (Vercel) ──► Supabase Auth + Postgres
 | Web app | Next.js 16, React 19, TypeScript, Tailwind CSS 4 | `apps/web` |
 | Auth and database | Supabase (Auth, Postgres) | — |
 | API service | Python 3.12, FastAPI, PyJWT | `services/api` |
+| Forecasting | Python 3.12, pandas, LightGBM — see [ml/README.md](ml/README.md) | `ml` |
 | CI | GitHub Actions: lint, unit tests, build, typecheck | `.github/workflows/ci.yml` |
 
 **Security notes**
@@ -67,6 +68,7 @@ uvicorn app.main:app --reload   # http://localhost:8000/docs
 ```bash
 cd apps/web && npm run lint && npm test && npm run build && npm run typecheck
 cd services/api && ruff check . && pytest
+make ml-lint ml-test train     # forecasting: lint, tests, backtest report
 ```
 
 CI runs all of these on every push and pull request.
@@ -99,7 +101,7 @@ The free Render plan sleeps when idle, so the first API request after a pause ca
 | --- | --- | --- |
 | M1 Template | Monorepo, CI, deploy pipeline, auth | Done |
 | M2 Core app | Shops, roles, products, stock, sales, CSV import | Done |
-| M3 Model | Baselines + LightGBM, backtests, reproducible training | — |
+| M3 Model | Baselines + LightGBM, backtests, reproducible training ([metrics](ml/reports/metrics.md)) | Done |
 | M4 Serving | Forecast API, nightly retraining, reorder list | — |
 | M5 Release | Dashboard, accessibility pass, end-to-end tests, docs | — |
 
