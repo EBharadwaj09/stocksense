@@ -36,7 +36,10 @@ means each festival is seen only once, so festival lifts are learned best from t
 
 To benchmark on public real data, download Kaggle's
 [Store Item Demand Forecasting](https://www.kaggle.com/c/demand-forecasting-kernels-only/data) `train.csv` and run
-`cd ml && python -m stocksense_ml backtest --data path/to/train.csv --max-series 50 --out reports-kaggle`.
+`cd ml && python -m stocksense_ml backtest --data path/to/train.csv --label "Kaggle Store Item Demand" --out reports-kaggle`
+(`--max-series 50` for a quick run). In GitHub: Actions → *Real-data benchmark* → Run workflow (needs the
+`KAGGLE_JSON` secret, see `.github/workflows/benchmark.yml`); it pushes the report to the `m5-benchmark` branch.
+The Kaggle data itself is never committed.
 
 ## Festivals
 
