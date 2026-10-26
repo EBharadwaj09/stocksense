@@ -67,6 +67,9 @@ jobs:
   ml:
     name: ML (lint, test, backtest)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash # explicit bash adds -o pipefail, so `make ... | tee` still fails on errors
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
