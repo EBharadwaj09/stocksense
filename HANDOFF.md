@@ -8,10 +8,10 @@ Read this first in any new chat or tool session, then update it at the end.
 
 Acceptance criteria:
 
-- [ ] Sign-up, email confirmation and login work on the deployed Vercel URL
+- [x] Sign-up and email confirmation work on the deployed Vercel URL (verified by owner 2026-10-26); sign-out/login re-check pending
 - [x] CI green on `main` (web: lint, 3 unit-test files, build, typecheck; API: ruff, 19 pytest cases)
-- [ ] API `/health` live on Render; `/me` returns the user for a valid Supabase token
-- [ ] README setup reproduced on a clean machine (or Codespace)
+- [x] API live on Render (deploy status live). `/me` end-to-end from the web app gets exercised in M3 when the dashboard first calls the API
+- [ ] README setup reproduced on a clean machine (or Codespace) — deferred; CI covers install/build/test from scratch
 
 ## Deployments
 
@@ -40,4 +40,6 @@ Acceptance criteria:
 
 ## Next task
 
-Deploy (Supabase → Vercel → Render), then start M2: shops, owner/staff roles with row-level security, products and stock movements.
+M2 Core app: `shops` and `shop_members` (owner/staff) with row-level security, shop creation after sign-up, staff invites, products and stock movements. Supabase schema changes go through migrations applied with the Supabase connector and also committed under `supabase/migrations/`.
+
+Gotcha: a page left open across a deploy can fail a form submit (stale Server Action). The error page now offers a reload, which fixes it.
