@@ -24,3 +24,4 @@ coverage/
 .vercel/
 .DS_Store
 *.log
+eslint-report.json

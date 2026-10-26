@@ -32,12 +32,15 @@ jobs:
       - name: Install
         run: if [ -f package-lock.json ]; then npm ci; else npm install; fi
       - name: Lint
-        run: npm run lint
+        run: npx eslint . -f json -o eslint-report.json || true; node ../../scripts/eslint-annotate.mjs eslint-report.json
       - name: Unit tests
+        if: ${{ !cancelled() }}
         run: npm test
       - name: Build
+        if: ${{ !cancelled() }}
         run: npm run build
       - name: Typecheck
+        if: ${{ !cancelled() }}
         run: npm run typecheck
 
   api:
