@@ -100,6 +100,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: |
           cat ml/reports/metrics.md >> "$GITHUB_STEP_SUMMARY"
+          # also as annotations, readable through the API without downloading artifacts
+          for f in metrics.md metrics.json; do
+            echo "::notice title=$f::$(sed -e 's/%/%25/g' "ml/reports/$f" | sed -e ':a;N;$!ba;s/\n/%0A/g')"
+          done
           git diff --quiet -- ml/reports || echo "::notice::Metrics differ from the committed ml/reports (expected after model changes)."
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
