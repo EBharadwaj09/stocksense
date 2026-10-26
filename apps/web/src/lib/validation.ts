@@ -24,6 +24,12 @@ export const signInSchema = z.object({
   password: z.string().min(1, { message: "Enter your password." }),
 });
 
+export const forgotPasswordSchema = z.object({ email: emailSchema });
+
+export const resetPasswordSchema = z
+  .object({ password: passwordSchema, confirm: z.string() })
+  .refine((v) => v.password === v.confirm, { message: "The two passwords don't match.", path: ["confirm"] });
+
 export type FieldErrors = Partial<Record<string, string>>;
 
 /** Flattens a Zod error to the first message per field, for form display. */
