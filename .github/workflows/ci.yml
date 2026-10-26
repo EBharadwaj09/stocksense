@@ -82,6 +82,10 @@ jobs:
       - name: Lint
         working-directory: ml
         run: ruff check --output-format=github .
+      - name: Lint end-to-end tests
+        if: ${{ !cancelled() }}
+        working-directory: e2e
+        run: ruff check --output-format=github .
       - name: Tests
         if: ${{ !cancelled() }}
         run: make ml-test 2>&1 | tee ml-test.log

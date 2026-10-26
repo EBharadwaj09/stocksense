@@ -61,7 +61,8 @@ flowchart LR
 | Auth and database | Supabase (Auth, Postgres, row-level security) | `supabase` |
 | Forecasting | Python 3.12, pandas, LightGBM — see [ml/README.md](ml/README.md) | `ml` |
 | API service | Python 3.12, FastAPI, PyJWT. Verifies Supabase tokens; deployed but not used by the web app yet (forecasts do not go through it) | `services/api` |
-| CI/CD | GitHub Actions (lint, tests, build, backtest, nightly forecast, screenshots), Vercel, Render | `.github/workflows` |
+| CI/CD | GitHub Actions (lint, tests, build, backtest, end-to-end tests, nightly forecast, screenshots), Vercel, Render | `.github/workflows` |
+| End-to-end tests | Playwright (Python), pytest | `e2e` |
 
 **Why forecasts run nightly in GitHub Actions and not on the API:** a training run peaks at about 270 MB, the free Render instance has 512 MB, sleeps when idle and has no disk. Precomputing once a night costs nothing and keeps the dashboard instant.
 
@@ -137,7 +138,7 @@ cd services/api && ruff check . && pytest
 make ml-lint ml-test train      # forecasting: lint, tests, backtest report
 ```
 
-CI runs all of these on every push and pull request. Database rules are checked in the Supabase SQL editor: `supabase/tests/rls_test.sql` (cross-shop isolation, staff limits, import rules) must end with `ALL_RLS_TESTS_PASSED` and `supabase/tests/demo_test.sql` with `DEMO_TESTS_PASSED`; both run in a transaction that is rolled back.
+CI runs all of these on every push and pull request. **End-to-end tests** ([e2e/](e2e/README.md)) drive real Chromium through the main flows on the live site after every production deploy: create a shop, import a year of sales, receive stock, sell, count, forecast, reorder, invite staff and check their limits, sign out. They use throwaway users that are deleted afterwards. Database rules are checked in the Supabase SQL editor: `supabase/tests/rls_test.sql` (cross-shop isolation, staff limits, import rules) must end with `ALL_RLS_TESTS_PASSED` and `supabase/tests/demo_test.sql` with `DEMO_TESTS_PASSED`; both run in a transaction that is rolled back.
 
 ## Environment variables
 

@@ -31,6 +31,8 @@ class FakeSupabase:
                 return False
             if op == "lt" and not str(row.get(col)) < value:
                 return False
+            if op == "in" and str(row.get(col)) not in value.strip("()").split(","):
+                return False
         return True
 
     def __call__(self, method, path, query, body):
@@ -107,6 +109,14 @@ def test_nightly_ignores_todays_partial_sales(db):
     run(db, now=NOW, dry_run=True)
     sales_queries = [q for m, p, q in db.calls if p == "daily_sales"]
     assert sales_queries and all(q["day"] == "lt.2026-07-01" for q in sales_queries)
+
+
+def test_only_selected_shops(db):
+    results = run(db, now=NOW, shop_ids=["short"])
+    assert [r.shop_id for r in results] == ["short"]
+    new = [r for r in db.tables["forecasts"] if r["generated_at"] != "2026"]  # skip the stale seed row
+    assert new and {r["shop_id"] for r in new} == {"short"}
+    assert any(r["product_id"] == "long-OLD" for r in db.tables["forecasts"])  # other shops untouched
 
 
 def test_dry_run_writes_nothing(db):
