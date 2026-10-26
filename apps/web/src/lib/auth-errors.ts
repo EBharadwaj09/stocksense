@@ -12,6 +12,9 @@ export function friendlyAuthError(error: { message?: string; status?: number; co
   if (code === "email_not_confirmed" || message.includes("email not confirmed")) {
     return "Please confirm your email first. Check your inbox for the link.";
   }
+  if (code === "same_password") {
+    return "Choose a password different from your old one.";
+  }
   if (code === "weak_password") {
     return "That password is too easy to guess. Try a longer one.";
   }

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { Field } from "@/components/Field";
 import { FormAlert } from "@/components/FormAlert";
@@ -31,6 +32,11 @@ export function LoginForm({ next, notice }: { next?: string; notice?: string }) 
         autoComplete="current-password"
         error={state.fieldErrors?.password}
       />
+      <p className="-mt-2 text-right text-sm">
+        <Link href="/forgot-password" className="font-semibold text-brand-700 underline underline-offset-2">
+          Forgot password or email?
+        </Link>
+      </p>
       <SubmitButton pendingText="Logging in…">Log in</SubmitButton>
     </form>
   );

@@ -6,7 +6,14 @@ import { friendlyAuthError } from "@/lib/auth-errors";
 import { log } from "@/lib/log";
 import { safeRedirectPath } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
-import { signInSchema, signUpSchema, toFieldErrors, type FieldErrors } from "@/lib/validation";
+import {
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  signInSchema,
+  signUpSchema,
+  toFieldErrors,
+  type FieldErrors,
+} from "@/lib/validation";
 
 export type AuthState = {
   fieldErrors?: FieldErrors;
@@ -81,4 +88,48 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
   }
 
   redirect(safeRedirectPath(String(formData.get("next") ?? "")));
+}
+
+export async function requestPasswordReset(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const values = { email: String(formData.get("email") ?? "") };
+  const parsed = forgotPasswordSchema.safeParse(values);
+  if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error), values };
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+    redirectTo: `${await siteOrigin()}/auth/callback?next=/reset-password`,
+  });
+  if (error) {
+    log("warn", "auth.reset_request_failed", { code: error.code, status: error.status });
+    // Only rate limits are shown; anything else gets the normal message so the form can't reveal accounts.
+    if (error.status === 429 || error.code === "over_email_send_rate_limit") {
+      return { formError: "Too many reset emails were sent recently. Please wait an hour and try again.", values };
+    }
+  }
+  // Same message whether or not the email has an account.
+  return {
+    notice: `If ${parsed.data.email} has a StockSense account, we've sent it a link to choose a new password. The link works once and expires in an hour.`,
+  };
+}
+
+export async function updatePassword(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const parsed = resetPasswordSchema.safeParse({
+    password: String(formData.get("password") ?? ""),
+    confirm: String(formData.get("confirm") ?? ""),
+  });
+  if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error) };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { formError: "Your reset link has expired. Request a new one below." };
+
+  const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
+  if (error) {
+    log("warn", "auth.password_update_failed", { code: error.code, status: error.status });
+    return { formError: friendlyAuthError(error) };
+  }
+  log("info", "auth.password_updated", { userId: user.id });
+  redirect("/dashboard");
 }

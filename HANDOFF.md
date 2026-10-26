@@ -10,6 +10,7 @@ M5 plan:
 
 - [x] Overview uses the same reorder rule as the Reorder page ("Order now" / "Order soon"; reorder point only when there is no forecast)
 - [x] Stock count page (`/dashboard/stock/count`): type shelf counts for any products, difference saved as opening/adjustment movements; Reorder page points to it when no stock is recorded. Rules tested in `apps/web/src/lib/stock-count.ts`
+- [x] Forgot password: `/forgot-password` (same message whether or not the email exists; rate limit shown) → email link → `/auth/callback?next=/reset-password` → `/reset-password` (new password twice). Login page links "Forgot password or email?" with guidance for a forgotten email (no usernames; staff ask the owner). Supabase's built-in email sender allows only a few emails per hour — set up custom SMTP before real users.
 - [ ] Mobile + accessibility pass (keyboard, contrast, screen-reader labels)
 - [ ] End-to-end tests of the main flows (sign-up → shop → import → stock → reorder)
 - [ ] Final docs: README walkthrough, screenshots, limitations
