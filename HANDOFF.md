@@ -26,7 +26,7 @@ Acceptance criteria:
 - App: onboarding (create shop / join via invite), Overview, Sales, Stock, Products (owner edits), Import (owner), Team (owner).
 - Invites: owner adds an email; staff signs up with that email and taps "Join shop". No emails sent by us (no secret keys needed).
 - CSV import: parsed and validated in the browser, sent in 1,000-row batches, re-validated by the server action and again in SQL. 10k rows validate in ~50 ms locally; the database imports 10k rows (10 batches) in 0.9 s after the hash-join rewrite (was 16.9 s).
-- Sample data: `samples/sample-sales-1-year.csv` (10,896 valid rows + 3 broken). Owner UI test of M2 pending.
+- Sample data: `samples/sample-sales-1-year.csv` (10,896 valid rows + 3 broken). Owner UI test passed 2026-10-26: shop created, sample imported in 7.8 s end-to-end (browser → Vercel → Supabase), 30 products auto-created, reorder point edit, stock in (+50), sale (−2) → stock 48, Overview correct.
 - Supabase advisor: two expected warnings (create_shop, accept_invite are SECURITY DEFINER by design and check the caller). Leaked-password protection is a dashboard setting, off.
 
 ## M1 done
