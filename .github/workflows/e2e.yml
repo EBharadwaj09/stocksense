@@ -2,10 +2,11 @@ name: End-to-end tests
 
 # Real browsers against the live site: sign-up checks, demo, owner (create shop -> import -> stock ->
 # sale -> count -> forecast -> reorder), staff (invite -> join -> limits) and sign-out.
-# Runs after every successful production deploy (Vercel reports deploys to GitHub) and on demand.
+# Also: axe-core accessibility audit and phone-width layout check on every page (test_accessibility.py).
+# Runs after every successful production deploy (Vercel's commit status on main) and on demand.
 # Uses throwaway users flagged app_metadata.e2e, deleted with their shop at the end (see e2e/README.md).
 on:
-  deployment_status:
+  status:
   workflow_dispatch:
     inputs:
       url:
@@ -23,9 +24,10 @@ jobs:
   e2e:
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'Production')
+      (github.event.context == 'Vercel' && github.event.state == 'success' &&
+       contains(github.event.branches.*.name, 'main'))
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     defaults:
       run:
         shell: bash
@@ -46,6 +48,7 @@ jobs:
         run: |
           pip install -r ml/requirements.txt -r e2e/requirements.txt
           python -m playwright install --with-deps chromium
+          npm install --no-save --no-package-lock --prefix e2e axe-core@4.10.3
       - name: Wait for the site
         run: |
           for i in $(seq 1 30); do
@@ -62,4 +65,4 @@ jobs:
         run: |
           [ -f e2e.log ] || exit 0
           level=notice; grep -qE "(FAILED|ERROR)" e2e.log && level=error
-          echo "::$level title=e2e::$(grep -E 'PASSED|FAILED|ERROR|Error|assert|expect|passed|failed' e2e.log | tail -n 60 | sed -e 's/%/%25/g' | sed -e ':a;N;$!ba;s/\n/%0A/g')"
+          echo "::$level title=e2e::$(grep -E '\[a11y\]|PASSED|FAILED|ERROR|Error|assert|expect|passed|failed' e2e.log | tail -n 90 | sed -e 's/%/%25/g' | sed -e ':a;N;$!ba;s/\n/%0A/g')"

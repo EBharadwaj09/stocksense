@@ -26,6 +26,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </form>
         </div>
         {ctx.shop ? (
+          <p className="truncate px-4 pb-1 text-sm font-medium text-brand-900 sm:hidden">
+            {ctx.shop.name}
+            <span className="font-normal text-slate-600"> · {ctx.role === "owner" ? "Owner" : "Staff"}</span>
+          </p>
+        ) : null}
+        {ctx.shop ? (
           <div className="mx-auto max-w-6xl px-2 sm:px-4">
             <DashboardNav isOwner={ctx.role === "owner"} />
           </div>
