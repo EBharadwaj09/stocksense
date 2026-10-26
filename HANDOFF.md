@@ -11,9 +11,12 @@ M5 plan:
 - [x] Overview uses the same reorder rule as the Reorder page ("Order now" / "Order soon"; reorder point only when there is no forecast)
 - [x] Stock count page (`/dashboard/stock/count`): type shelf counts for any products, difference saved as opening/adjustment movements; Reorder page points to it when no stock is recorded. Rules tested in `apps/web/src/lib/stock-count.ts`
 - [x] Forgot password: `/forgot-password` (same message whether or not the email exists; rate limit shown) → email link → `/auth/callback?next=/reset-password` → `/reset-password` (new password twice). Login page links "Forgot password or email?" with guidance for a forgotten email (no usernames; staff ask the owner). Supabase's built-in email sender allows only a few emails per hour — set up custom SMTP before real users.
-- [ ] Mobile + accessibility pass (keyboard, contrast, screen-reader labels)
+- [x] Public demo account (PR #7): "Try the live demo" on landing + login, banner, `demo@example.com` / `stocksense-demo-2026` (public on purpose, in `apps/web/src/lib/demo-account.json`, shared with the nightly job). Reset nightly by `python -m stocksense_ml demo-reset` (runs first in `forecast.yml`, failure doesn't block real shops) via SQL `demo_prepare()` (service_role only; refuses non-demo users; `supabase/tests/demo_test.sql` passes on the live project). The demo password can't be changed and no reset email is sent to it.
+- [x] Screenshots: `screenshots.yml` (manual) logs in as the demo user on the live site and pushes desktop + mobile PNGs to branch `m5-screenshots`; copy `docs/screenshots` from it (the build sandbox can't reach the live site or download artifacts). Re-run after UI changes.
+- [x] README showcase: live demo + credentials, screenshots, Mermaid architecture, forecast results, demo account, limitations
+- [ ] Real-data benchmark on Kaggle Store Item Demand (needs the data from somewhere the build sandbox can reach, e.g. a GitHub Actions run)
 - [ ] End-to-end tests of the main flows (sign-up → shop → import → stock → reorder)
-- [ ] Final docs: README walkthrough, screenshots, limitations
+- [ ] Mobile + accessibility pass (keyboard, contrast, screen-reader labels). Found in the mobile screenshots: the Reorder table is cut off sideways at 390 px, dashboard tabs are clipped ("Product…"), the shop name is hidden on small screens
 - [ ] Re-check sign-out/login on the live site; fix Render auto-deploy before any API change
 
 ## Deployments
@@ -72,14 +75,16 @@ M5 plan:
 - GitHub pauses scheduled workflows after 60 days without repository activity; re-enable from the Actions tab if that happens.
 
 - LightGBM cannot be installed in the build sandbox; locally the pipeline runs with `--engine sklearn` (HistGradientBoosting). CI is the source of truth for LightGBM metrics.
-- Kaggle real-data benchmark not run (needs a Kaggle login to download); command is in `ml/README.md`.
+- Kaggle real-data benchmark not run yet (kaggle.com is not reachable from the build sandbox; a GitHub Actions run can fetch it); command is in `ml/README.md`.
+- The web app does not call the FastAPI service yet (`NEXT_PUBLIC_API_URL` is unused); the README says so.
+- `gh pr create` and other GraphQL calls are blocked in the build sandbox; use `gh api repos/EBharadwaj09/stocksense/pulls` (REST). Workflow annotations are the way to read job output.
 
 - The build environment that writes code here has no package registry access, so CI is the verification gate for every change.
 - No lockfile yet; CI generates one with `npm install`. Commit `apps/web/package-lock.json` after the first green run.
 
 ## Next task
 
-M5: owner tries the stock count page on the PR preview/live site; then mobile + accessibility pass.
+M5, in this order: real-data benchmark (Kaggle) → end-to-end tests → mobile + accessibility pass. Then final checks (sign-out/login on the live site, Render auto-deploy) and close M5.
 
 Workflow: schema changes = new file in `supabase/migrations/` + apply with the Supabase connector + regenerate `apps/web/src/lib/database.types.ts`. Feature work on a branch → PR → CI green → merge (Vercel deploys main).
 

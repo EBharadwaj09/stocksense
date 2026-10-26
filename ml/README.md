@@ -55,3 +55,10 @@ sleeps when idle and has no persistent disk. Precomputing nightly costs nothing 
 
 The job needs the repository secret `SUPABASE_SECRET_KEY` (a Supabase secret key; it bypasses row-level security,
 so it lives only in GitHub secrets, never in the web app or the repo).
+
+## Demo account reset
+
+`python -m stocksense_ml demo-reset [--dry-run]` (run first in the nightly workflow) resets the public demo account's
+password, wipes its shops through the SQL function `demo_prepare()` and reloads `samples/sample-sales-1-year.csv`
+shifted to end yesterday, with opening stock chosen so the Reorder page shows a mix of statuses. The account is the one
+flagged `app_metadata.demo = true`; credentials come from `apps/web/src/lib/demo-account.json`. Tests: `tests/test_demo.py`.
