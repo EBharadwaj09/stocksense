@@ -4,7 +4,7 @@ Read this first in any new chat or tool session, then update it at the end.
 
 ## Current milestone
 
-**P1 StockSense · M5 Release** — in progress on branch `m5-release`. M4 merged (PR #4) and verified by the owner 2026-10-26.
+**P1 StockSense · M5 Release** — done 2026-10-26 (PRs #5–#13). All five milestones complete.
 
 M5 plan:
 
@@ -17,9 +17,9 @@ M5 plan:
 - [x] Kaggle benchmark (PR #9 workflow, results PR #12): `benchmark.yml` (manual) downloads `train.csv` with repository secret `KAGGLE_JSON` (owner's kaggle.json, added 2026-10-26) and pushes only the report to branch `m5-benchmark`; committed copy in `ml/reports-kaggle/`. All 500 series, 56,000 forecasts, 37 min: LightGBM WAPE 11.1% vs 18.3% (7-day avg), 39.2% lower, bias +0.4%. Described as a public benchmark (cleaner than a real shop), not "real shop data".
 - [x] End-to-end tests (`e2e/`, Playwright Python + pytest, `.github/workflows/e2e.yml`): run on the live site after each production deploy and on demand; throwaway users flagged `app_metadata.e2e` are swept at start and end. `nightly --shop <id>` forecasts one shop. Covers sign-out/login re-check.
 - [x] Mobile + accessibility pass (PR #11): Reorder and Products use cards on phones, tabs keep the current one in view, shop name on phones, two contrast fixes. `e2e/test_accessibility.py`: axe-core WCAG 2.2 A/AA on 13 pages × desktop/phone, no sideways scroll at 390 px, skip link. First run: 0 violations of any level, 12/12 tests pass.
-- [ ] Owner checks the live site on a real phone (demo + own shop)
+- [x] Owner checked the live site on a real phone (demo + own shop) 2026-10-26: both open fine
 - [x] Sign-out/login on the live site: covered by E2E after every deploy
-- [ ] Fix Render auto-deploy before any API change
+- [x] Render auto-deploy: cause was the Render GitHub App not installed on the owner's GitHub account (service had only manual/API deploys). Owner installed it 2026-10-26; the merge of this change is the first push-triggered deploy
 
 ## Deployments
 
@@ -73,7 +73,6 @@ M5 plan:
 
 ## Open issues
 
-- Render auto-deploy is not firing: last deploy 2026-10-26 10:29 (API commit 6b84efa) although later commits hit `main`. Harmless while the API is unchanged; reconnect Render's GitHub app (or deploy manually) before the next API change.
 - GitHub pauses scheduled workflows after 60 days without repository activity; re-enable from the Actions tab if that happens.
 
 - LightGBM cannot be installed in the build sandbox; locally the pipeline runs with `--engine sklearn` (HistGradientBoosting). CI is the source of truth for LightGBM metrics.
@@ -86,7 +85,7 @@ M5 plan:
 
 ## Next task
 
-Close M5: owner's phone check, then fix Render auto-deploy (reconnect Render's GitHub app or deploy manually; needed before any API change). Sign-out/login on the live site is now covered by the E2E run after every deploy.
+P1 StockSense is complete. Next: pick the next portfolio project (P2), or optional StockSense polish (custom SMTP before real users, real shop data for a true accuracy number). Sign-out/login on the live site is covered by the E2E run after every deploy.
 
 E2E runs automatically on Vercel's success status for `main` (`e2e.yml`, `status` event: Vercel sets commit statuses, not GitHub deployments). Re-run Screenshots after UI changes and copy `docs/screenshots` from `m5-screenshots`.
 
