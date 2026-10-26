@@ -41,6 +41,10 @@ To benchmark on public real data, download Kaggle's
 `KAGGLE_JSON` secret, see `.github/workflows/benchmark.yml`); it pushes the report to the `m5-benchmark` branch.
 The Kaggle data itself is never committed.
 
+Result (all 500 store-item series, 56,000 scored forecasts, [reports-kaggle/metrics.md](reports-kaggle/metrics.md)):
+LightGBM WAPE 11.1% vs 18.3% for the best baseline (7-day average), 39.2% lower, bias +0.4%. The run takes
+about 37 minutes on a GitHub runner.
+
 ## Festivals
 
 `stocksense_ml/festivals.csv` lists Gujarat-relevant festivals 2024–2027 (start, end, shopping lead days).

@@ -14,10 +14,12 @@ M5 plan:
 - [x] Public demo account (PR #7): "Try the live demo" on landing + login, banner, `demo@example.com` / `stocksense-demo-2026` (public on purpose, in `apps/web/src/lib/demo-account.json`, shared with the nightly job). Reset nightly by `python -m stocksense_ml demo-reset` (runs first in `forecast.yml`, failure doesn't block real shops) via SQL `demo_prepare()` (service_role only; refuses non-demo users; `supabase/tests/demo_test.sql` passes on the live project). The demo password can't be changed and no reset email is sent to it.
 - [x] Screenshots: `screenshots.yml` (manual) logs in as the demo user on the live site and pushes desktop + mobile PNGs to branch `m5-screenshots`; copy `docs/screenshots` from it (the build sandbox can't reach the live site or download artifacts). Re-run after UI changes.
 - [x] README showcase: live demo + credentials, screenshots, Mermaid architecture, forecast results, demo account, limitations
-- [ ] Real-data benchmark on Kaggle Store Item Demand (needs the data from somewhere the build sandbox can reach, e.g. a GitHub Actions run)
+- [x] Kaggle benchmark (PR #9 workflow, results PR #12): `benchmark.yml` (manual) downloads `train.csv` with repository secret `KAGGLE_JSON` (owner's kaggle.json, added 2026-10-26) and pushes only the report to branch `m5-benchmark`; committed copy in `ml/reports-kaggle/`. All 500 series, 56,000 forecasts, 37 min: LightGBM WAPE 11.1% vs 18.3% (7-day avg), 39.2% lower, bias +0.4%. Described as a public benchmark (cleaner than a real shop), not "real shop data".
 - [x] End-to-end tests (`e2e/`, Playwright Python + pytest, `.github/workflows/e2e.yml`): run on the live site after each production deploy and on demand; throwaway users flagged `app_metadata.e2e` are swept at start and end. `nightly --shop <id>` forecasts one shop. Covers sign-out/login re-check.
-- [ ] Mobile + accessibility pass (keyboard, contrast, screen-reader labels). Found in the mobile screenshots: the Reorder table is cut off sideways at 390 px, dashboard tabs are clipped ("Product…"), the shop name is hidden on small screens
-- [ ] Re-check sign-out/login on the live site; fix Render auto-deploy before any API change
+- [x] Mobile + accessibility pass (PR #11): Reorder and Products use cards on phones, tabs keep the current one in view, shop name on phones, two contrast fixes. `e2e/test_accessibility.py`: axe-core WCAG 2.2 A/AA on 13 pages × desktop/phone, no sideways scroll at 390 px, skip link. First run: 0 violations of any level, 12/12 tests pass.
+- [ ] Owner checks the live site on a real phone (demo + own shop)
+- [x] Sign-out/login on the live site: covered by E2E after every deploy
+- [ ] Fix Render auto-deploy before any API change
 
 ## Deployments
 
@@ -75,7 +77,7 @@ M5 plan:
 - GitHub pauses scheduled workflows after 60 days without repository activity; re-enable from the Actions tab if that happens.
 
 - LightGBM cannot be installed in the build sandbox; locally the pipeline runs with `--engine sklearn` (HistGradientBoosting). CI is the source of truth for LightGBM metrics.
-- Kaggle real-data benchmark not run yet (kaggle.com is not reachable from the build sandbox; a GitHub Actions run can fetch it); command is in `ml/README.md`.
+- kaggle.com and the live site are not reachable from the build sandbox; anything that needs them runs in GitHub Actions and reports through annotations or a pushed branch.
 - The web app does not call the FastAPI service yet (`NEXT_PUBLIC_API_URL` is unused); the README says so.
 - `gh pr create` and other GraphQL calls are blocked in the build sandbox; use `gh api repos/EBharadwaj09/stocksense/pulls` (REST). Workflow annotations are the way to read job output.
 
@@ -84,7 +86,9 @@ M5 plan:
 
 ## Next task
 
-M5, in this order: real-data benchmark (Kaggle) → end-to-end tests → mobile + accessibility pass. Then final checks (sign-out/login on the live site, Render auto-deploy) and close M5.
+Close M5: owner's phone check, then fix Render auto-deploy (reconnect Render's GitHub app or deploy manually; needed before any API change). Sign-out/login on the live site is now covered by the E2E run after every deploy.
+
+E2E runs automatically on Vercel's success status for `main` (`e2e.yml`, `status` event: Vercel sets commit statuses, not GitHub deployments). Re-run Screenshots after UI changes and copy `docs/screenshots` from `m5-screenshots`.
 
 Workflow: schema changes = new file in `supabase/migrations/` + apply with the Supabase connector + regenerate `apps/web/src/lib/database.types.ts`. Feature work on a branch → PR → CI green → merge (Vercel deploys main).
 

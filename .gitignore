@@ -29,3 +29,5 @@ eslint-report.json
 # Forecasting outputs
 ml/forecast.csv
 ml/reports-*/
+# committed copy of the Kaggle benchmark report (the Kaggle data itself is never committed)
+!ml/reports-kaggle/
