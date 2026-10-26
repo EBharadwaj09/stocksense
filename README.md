@@ -179,7 +179,7 @@ Templates: `apps/web/.env.example`, `services/api/.env.example`. Never commit re
 | M2 Core app | Shops, roles, products, stock, sales, CSV import | Done |
 | M3 Model | Baselines + LightGBM, backtests, reproducible training ([metrics](ml/reports/metrics.md)) | Done |
 | M4 Serving | Nightly forecasts (GitHub Actions → Supabase), reorder list | Done |
-| M5 Release | Stock count, password reset, demo, README, real-data benchmark, end-to-end tests, mobile and accessibility pass | In progress |
+| M5 Release | Stock count, password reset, demo, README, real-data benchmark, end-to-end tests, mobile and accessibility pass | Done |
 
 ## License
 
