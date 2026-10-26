@@ -1,0 +1,141 @@
+{
+  "engine": "lightgbm",
+  "datasets": [
+    {
+      "dataset": "Sample shop, 1 year (samples/)",
+      "products": 30,
+      "days": 365,
+      "first_day": "2025-10-27",
+      "last_day": "2026-10-26",
+      "origins": [
+        "2026-08-24",
+        "2026-08-31",
+        "2026-09-07",
+        "2026-09-14",
+        "2026-09-21",
+        "2026-09-28",
+        "2026-10-05",
+        "2026-10-12"
+      ],
+      "horizon": 14,
+      "scored_forecasts": 3360,
+      "metrics": {
+        "Naive (last day)": {
+          "MAE": 4.2217,
+          "WAPE": 0.3462,
+          "Bias": -0.114,
+          "WAPE festive days": 0.3574
+        },
+        "Seasonal naive (same weekday)": {
+          "MAE": 3.8509,
+          "WAPE": 0.3158,
+          "Bias": -0.0458,
+          "WAPE festive days": 0.3254
+        },
+        "Moving average 7d": {
+          "MAE": 3.3083,
+          "WAPE": 0.2713,
+          "Bias": -0.0458,
+          "WAPE festive days": 0.2823
+        },
+        "Moving average 28d": {
+          "MAE": 3.2315,
+          "WAPE": 0.265,
+          "Bias": -0.0633,
+          "WAPE festive days": 0.2784
+        },
+        "LightGBM": {
+          "MAE": 2.9859,
+          "WAPE": 0.2448,
+          "Bias": -0.0302,
+          "WAPE festive days": 0.2612
+        }
+      },
+      "gbm_wape_by_horizon": {
+        "1": 0.262,
+        "2": 0.243,
+        "3": 0.255,
+        "4": 0.235,
+        "5": 0.222,
+        "6": 0.214,
+        "7": 0.267,
+        "8": 0.267,
+        "9": 0.252,
+        "10": 0.26,
+        "11": 0.247,
+        "12": 0.238,
+        "13": 0.225,
+        "14": 0.269
+      },
+      "gbm_relative_improvement": 0.076
+    },
+    {
+      "dataset": "Synthetic shop, ~3 years (generated, seed 7)",
+      "products": 30,
+      "days": 1029,
+      "first_day": "2024-01-01",
+      "last_day": "2026-10-25",
+      "origins": [
+        "2026-08-23",
+        "2026-08-30",
+        "2026-09-06",
+        "2026-09-13",
+        "2026-09-20",
+        "2026-09-27",
+        "2026-10-04",
+        "2026-10-11"
+      ],
+      "horizon": 14,
+      "scored_forecasts": 3360,
+      "metrics": {
+        "Naive (last day)": {
+          "MAE": 4.906,
+          "WAPE": 0.3531,
+          "Bias": 0.1418,
+          "WAPE festive days": 0.33
+        },
+        "Seasonal naive (same weekday)": {
+          "MAE": 4.3125,
+          "WAPE": 0.3104,
+          "Bias": -0.0407,
+          "WAPE festive days": 0.3205
+        },
+        "Moving average 7d": {
+          "MAE": 3.5955,
+          "WAPE": 0.2588,
+          "Bias": -0.0407,
+          "WAPE festive days": 0.2741
+        },
+        "Moving average 28d": {
+          "MAE": 3.5167,
+          "WAPE": 0.2531,
+          "Bias": -0.0552,
+          "WAPE festive days": 0.2828
+        },
+        "LightGBM": {
+          "MAE": 2.9139,
+          "WAPE": 0.2098,
+          "Bias": -0.0104,
+          "WAPE festive days": 0.2087
+        }
+      },
+      "gbm_wape_by_horizon": {
+        "1": 0.211,
+        "2": 0.234,
+        "3": 0.208,
+        "4": 0.216,
+        "5": 0.24,
+        "6": 0.178,
+        "7": 0.196,
+        "8": 0.205,
+        "9": 0.227,
+        "10": 0.2,
+        "11": 0.219,
+        "12": 0.248,
+        "13": 0.179,
+        "14": 0.193
+      },
+      "gbm_relative_improvement": 0.1714
+    }
+  ]
+}
