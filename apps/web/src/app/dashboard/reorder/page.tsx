@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getForecasts, getProductsWithStock, todayIn } from "@/lib/data";
-import { COVER_DAYS, compareUrgency, planReorder, type ReorderStatus } from "@/lib/reorder";
+import { COVER_DAYS, compareUrgency, planReorder, type ReorderPlan, type ReorderStatus } from "@/lib/reorder";
 import { formatDate, formatQty, requireShop } from "@/lib/shop";
 
 export const metadata: Metadata = { title: "Reorder" };
@@ -18,6 +18,30 @@ const MODEL_LABELS: Record<string, string> = {
   sklearn: "trained model",
   moving_average_28d: "28-day average (needs 2 months of sales for the trained model)",
 };
+
+function StatusPill({ status }: { status: ReorderStatus }) {
+  return (
+    <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS[status].className}`}>
+      {STATUS[status].label}
+    </span>
+  );
+}
+
+function ProductName({ id, name, linked }: { id: string; name: string; linked: boolean }) {
+  return linked ? (
+    <Link href={`/dashboard/products/${id}`} className="hover:underline">
+      {name}
+    </Link>
+  ) : (
+    <>{name}</>
+  );
+}
+
+const next7Text = (plan: ReorderPlan) => (plan.status === "no_forecast" ? "—" : formatQty(Math.round(plan.next7Days)));
+const daysLeftText = (plan: ReorderPlan) =>
+  plan.daysLeft === null ? "—" : plan.daysLeft >= 60 ? "60+" : String(plan.daysLeft);
+const suggestedText = (plan: ReorderPlan, unit: string) =>
+  plan.suggestedQty > 0 ? `${formatQty(plan.suggestedQty)} ${unit}` : "—";
 
 export default async function ReorderPage() {
   const { shop, role } = await requireShop();
@@ -81,7 +105,39 @@ export default async function ReorderPage() {
           <h2 id="reorder-heading" className="border-b border-slate-200 px-5 py-4 font-semibold text-brand-900">
             {toOrder.length === 0 ? "Nothing to order right now" : `${toOrder.length} to order`}
           </h2>
-          <div className="overflow-x-auto">
+          {/* Phones: one card per product, the numbers that decide an order first. */}
+          <ul className="divide-y divide-slate-100 sm:hidden">
+            {rows.map(({ product: p, plan }) => (
+              <li key={p.id} className="px-4 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <h3 className="font-medium text-slate-900">
+                    <ProductName id={p.id} name={p.name} linked={role === "owner"} />
+                  </h3>
+                  <StatusPill status={plan.status} />
+                </div>
+                <dl className="mt-2 grid grid-cols-3 gap-2 text-sm">
+                  <div>
+                    <dt className="text-slate-600">In stock</dt>
+                    <dd className="tabular-nums">
+                      {formatQty(p.onHand)} {p.unit}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-slate-600">Days left</dt>
+                    <dd className="tabular-nums">{daysLeftText(plan)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-slate-600">Order</dt>
+                    <dd className="font-semibold tabular-nums text-brand-900">{suggestedText(plan, p.unit)}</dd>
+                  </div>
+                </dl>
+                <p className="mt-1 text-xs text-slate-600">
+                  Next 7 days: {next7Text(plan)} · lead time {p.leadTimeDays} d
+                </p>
+              </li>
+            ))}
+          </ul>
+          <div className="hidden overflow-x-auto sm:block">
             <table className="w-full min-w-[640px] text-left text-sm">
               <thead className="bg-slate-50 text-slate-600">
                 <tr>
@@ -98,31 +154,23 @@ export default async function ReorderPage() {
                 {rows.map(({ product: p, plan }) => (
                   <tr key={p.id}>
                     <th scope="row" className="px-5 py-3 font-medium text-slate-900">
-                      {role === "owner" ? (
-                        <Link href={`/dashboard/products/${p.id}`} className="hover:underline">
-                          {p.name}
-                        </Link>
-                      ) : (
-                        p.name
-                      )}
+                      <ProductName id={p.id} name={p.name} linked={role === "owner"} />
                     </th>
                     <td className="px-3 py-3">
-                      <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS[plan.status].className}`}>
-                        {STATUS[plan.status].label}
-                      </span>
+                      <StatusPill status={plan.status} />
                     </td>
                     <td className="px-3 py-3 text-right tabular-nums">
                       {formatQty(p.onHand)} {p.unit}
                     </td>
                     <td className="px-3 py-3 text-right tabular-nums">
-                      {plan.status === "no_forecast" ? "—" : formatQty(Math.round(plan.next7Days))}
+                      {next7Text(plan)}
                     </td>
                     <td className="px-3 py-3 text-right tabular-nums">
-                      {plan.daysLeft === null ? "—" : plan.daysLeft >= 60 ? "60+" : plan.daysLeft}
+                      {daysLeftText(plan)}
                     </td>
                     <td className="px-3 py-3 text-right tabular-nums">{p.leadTimeDays} d</td>
                     <td className="px-5 py-3 text-right font-semibold tabular-nums text-brand-900">
-                      {plan.suggestedQty > 0 ? `${formatQty(plan.suggestedQty)} ${p.unit}` : "—"}
+                      {suggestedText(plan, p.unit)}
                     </td>
                   </tr>
                 ))}

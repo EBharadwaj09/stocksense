@@ -6,6 +6,24 @@ import { setProductActive } from "../actions";
 
 export const metadata: Metadata = { title: "Products" };
 
+function ProductActions({ id, name, active, align = "end" }: { id: string; name: string; active: boolean; align?: "start" | "end" }) {
+  return (
+    <div className={`flex gap-2 ${align === "end" ? "justify-end" : "justify-start"}`}>
+      <Link href={`/dashboard/products/${id}`} className="rounded px-2 py-1.5 font-medium text-brand-700 hover:bg-brand-50">
+        Edit<span className="sr-only"> {name}</span>
+      </Link>
+      <form action={setProductActive}>
+        <input type="hidden" name="id" value={id} />
+        <input type="hidden" name="active" value={active ? "false" : "true"} />
+        <button type="submit" className="rounded px-2 py-1.5 font-medium text-slate-600 hover:bg-slate-100">
+          {active ? "Hide" : "Show"}
+          <span className="sr-only"> {name}</span>
+        </button>
+      </form>
+    </div>
+  );
+}
+
 export default async function ProductsPage() {
   const { shop, role } = await requireShop();
   const isOwner = role === "owner";
@@ -28,7 +46,33 @@ export default async function ProductsPage() {
       {products.length === 0 ? (
         <p className="rounded-xl border border-slate-200 bg-white p-6 text-slate-600">No products yet.</p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <>
+          {/* Phones: one card per product. */}
+          <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white sm:hidden">
+            {products.map((p) => (
+              <li key={p.id} className={`px-4 py-3 ${p.active ? "" : "text-slate-500"}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <h2 className="font-medium">
+                    {p.name}
+                    {!p.active ? <span className="ml-2 text-xs">(hidden)</span> : null}
+                  </h2>
+                  <span className={`whitespace-nowrap tabular-nums ${isLowStock(p) ? "font-semibold text-amber-700" : ""}`}>
+                    {formatQty(p.onHand)} {p.unit}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-slate-600">
+                  {p.sku ? `Code ${p.sku} · ` : ""}Reorder at {p.reorderPoint > 0 ? formatQty(p.reorderPoint) : "—"} ·{" "}
+                  {formatMoney(p.price, shop.currency)}
+                </p>
+                {isOwner ? (
+                  <div className="mt-2 -ml-2">
+                    <ProductActions id={p.id} name={p.name} active={p.active} align="start" />
+                  </div>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white sm:block">
           <table className="w-full min-w-[640px] text-left text-sm">
             <caption className="sr-only">Products with current stock</caption>
             <thead className="border-b border-slate-200 bg-slate-50 text-slate-600">
@@ -43,7 +87,7 @@ export default async function ProductsPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {products.map((p) => (
-                <tr key={p.id} className={p.active ? "" : "text-slate-400"}>
+                <tr key={p.id} className={p.active ? "" : "text-slate-500"}>
                   <td className="px-4 py-3 font-medium">
                     {p.name}
                     {!p.active ? <span className="ml-2 text-xs">(hidden)</span> : null}
@@ -56,19 +100,7 @@ export default async function ProductsPage() {
                   <td className="px-4 py-3 text-right">{formatMoney(p.price, shop.currency)}</td>
                   {isOwner ? (
                     <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-2">
-                        <Link href={`/dashboard/products/${p.id}`} className="rounded px-2 py-1 font-medium text-brand-700 hover:bg-brand-50">
-                          Edit<span className="sr-only"> {p.name}</span>
-                        </Link>
-                        <form action={setProductActive}>
-                          <input type="hidden" name="id" value={p.id} />
-                          <input type="hidden" name="active" value={p.active ? "false" : "true"} />
-                          <button type="submit" className="rounded px-2 py-1 font-medium text-slate-600 hover:bg-slate-100">
-                            {p.active ? "Hide" : "Show"}
-                            <span className="sr-only"> {p.name}</span>
-                          </button>
-                        </form>
-                      </div>
+                      <ProductActions id={p.id} name={p.name} active={p.active} />
                     </td>
                   ) : null}
                 </tr>
@@ -76,6 +108,7 @@ export default async function ProductsPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );

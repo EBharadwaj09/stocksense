@@ -45,10 +45,10 @@ export default async function SalesPage() {
           <p className="px-5 py-6 text-sm text-slate-600">No sales yet.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[480px] text-left text-sm">
+            <table className="w-full text-left text-sm sm:min-w-[480px]">
               <thead className="bg-slate-50 text-slate-600">
                 <tr>
-                  <th scope="col" className="px-4 py-2.5 font-medium">Date</th>
+                  <th scope="col" className="px-3 py-2.5 font-medium sm:px-4">Date</th>
                   <th scope="col" className="px-4 py-2.5 font-medium">Product</th>
                   <th scope="col" className="px-4 py-2.5 text-right font-medium">Qty</th>
                   <th scope="col" className="px-4 py-2.5 text-right font-medium">Amount</th>
@@ -61,7 +61,7 @@ export default async function SalesPage() {
                     <tr key={s.id}>
                       <td className="px-4 py-2.5 text-slate-600">
                         {formatDate(s.sold_at)}
-                        {s.source === "import" ? <span className="ml-1 text-xs text-slate-400">(imported)</span> : null}
+                        {s.source === "import" ? <span className="ml-1 text-xs text-slate-500">(imported)</span> : null}
                       </td>
                       <td className="px-4 py-2.5">{p?.name ?? "—"}</td>
                       <td className="px-4 py-2.5 text-right">
