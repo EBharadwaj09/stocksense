@@ -9,7 +9,7 @@ Read this first in any new chat or tool session, then update it at the end.
 Acceptance criteria:
 
 - [ ] Sign-up, email confirmation and login work on the deployed Vercel URL
-- [x] CI green on `main` (web: lint, 3 unit-test files, build, typecheck; API: ruff, 17 pytest cases)
+- [x] CI green on `main` (web: lint, 3 unit-test files, build, typecheck; API: ruff, 19 pytest cases)
 - [ ] API `/health` live on Render; `/me` returns the user for a valid Supabase token
 - [ ] README setup reproduced on a clean machine (or Codespace)
 
