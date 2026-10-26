@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getProductsWithStock, isLowStock } from "@/lib/data";
-import { formatDate, formatMoney, formatQty, getShopContext } from "@/lib/shop";
+import { daysAgoIso, formatDate, formatMoney, formatQty, getShopContext } from "@/lib/shop";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Overview" };
@@ -11,7 +11,7 @@ export default async function OverviewPage() {
   // Without a shop, the layout shows onboarding instead of this page.
   if (!shop) return null;
   const supabase = await createClient();
-  const since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+  const since = daysAgoIso(7);
 
   const [products, { data: recentSales }, { data: weekSales }] = await Promise.all([
     getProductsWithStock(shop.id, { activeOnly: true }),

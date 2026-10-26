@@ -90,3 +90,8 @@ export function formatQty(value: number | null | undefined): string {
 export function formatDate(iso: string): string {
   return new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeZone: "Asia/Kolkata" }).format(new Date(iso));
 }
+
+/** ISO timestamp for `days` days before now. */
+export function daysAgoIso(days: number): string {
+  return new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
+}
