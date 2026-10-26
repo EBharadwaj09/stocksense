@@ -4,7 +4,7 @@ Read this first in any new chat or tool session, then update it at the end.
 
 ## Current milestone
 
-**P1 StockSense · M1 Template** — monorepo, CI, deploy pipeline, auth.
+**P1 StockSense · M2 Core app** — done; M3 (forecasting model) next. M1 summary kept below.
 
 Acceptance criteria:
 
@@ -19,7 +19,17 @@ Acceptance criteria:
 - Vercel project `stocksense` (root `apps/web`, Hobby plan); auto-deploys `main`.
 - Render web service `stocksense-api` (Singapore, Free plan): https://stocksense-api-416u.onrender.com; auto-deploys `main`.
 
-## Done
+## M2 done (2026-10-26)
+
+- Database (`supabase/migrations/`): shops, shop_members (owner/staff), shop_invites, products, sales, stock_movements, product_stock view; RLS on every table; RPCs `create_shop`, `accept_invite`, `record_sale`, `import_sales`. Applied to the live project with the Supabase connector.
+- `supabase/tests/rls_test.sql` passes on the live project (cross-shop isolation, staff limits, import rules, anon blocked).
+- App: onboarding (create shop / join via invite), Overview, Sales, Stock, Products (owner edits), Import (owner), Team (owner).
+- Invites: owner adds an email; staff signs up with that email and taps "Join shop". No emails sent by us (no secret keys needed).
+- CSV import: parsed and validated in the browser, sent in 1,000-row batches, re-validated by the server action and again in SQL. 10k rows validate in ~50 ms locally.
+- Supabase advisor: two expected warnings (create_shop, accept_invite are SECURITY DEFINER by design and check the caller). Leaked-password protection is a dashboard setting, off.
+
+## M1 done
+
 
 - Next.js web app: landing, sign-up, login, email-confirmation callback, protected dashboard, sign-out (POST), error and 404 pages, security headers.
 - Validation (Zod), safe redirects, friendly auth errors — unit tests with Vitest.
@@ -40,6 +50,8 @@ Acceptance criteria:
 
 ## Next task
 
-M2 Core app: `shops` and `shop_members` (owner/staff) with row-level security, shop creation after sign-up, staff invites, products and stock movements. Supabase schema changes go through migrations applied with the Supabase connector and also committed under `supabase/migrations/`.
+M3 Model: daily sales per product from `sales` (manual + imported), naive and moving-average baselines, LightGBM with lag/calendar/festival features, rolling-origin backtests (MAE, WAPE), `make train` reproducing the metrics table. Needs sample data: Kaggle Store Item Demand or M5 until real shop history exists.
+
+Workflow: schema changes = new file in `supabase/migrations/` + apply with the Supabase connector + regenerate `apps/web/src/lib/database.types.ts`. Feature work on a branch → PR → CI green → merge (Vercel deploys main).
 
 Gotcha: a page left open across a deploy can fail a form submit (stale Server Action). The error page now offers a reload, which fixes it.
