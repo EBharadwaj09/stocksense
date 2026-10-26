@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import type { Database, ShopRole } from "@/lib/database.types";
+import { isDemoUser } from "@/lib/demo";
 import { createClient } from "@/lib/supabase/server";
 
 type Shop = Database["public"]["Tables"]["shops"]["Row"];
@@ -8,6 +9,7 @@ type Invite = Database["public"]["Tables"]["shop_invites"]["Row"];
 
 export type ShopContext = {
   user: { id: string; email: string; name: string };
+  isDemo: boolean;
   shop: Shop | null;
   role: ShopRole | null;
   pendingInvites: (Invite & { shopName: string | null })[];
@@ -57,6 +59,7 @@ export const getShopContext = cache(async (): Promise<ShopContext> => {
 
   return {
     user: { id: user.id, email, name },
+    isDemo: isDemoUser(user),
     shop,
     role: membership?.role ?? null,
     pendingInvites,

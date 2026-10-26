@@ -18,6 +18,7 @@ import pandas as pd
 
 from .backtest import BacktestResult, forecast, run_backtest
 from .data import Panel, load_panel
+from .demo import main as demo_main
 from .nightly import main as nightly_main
 from .synth import generate
 
@@ -180,6 +181,10 @@ def main(argv: list[str] | None = None) -> int:
     n.add_argument("--dry-run", action="store_true", help="read and forecast, but write nothing")
     n.add_argument("--engine", default="auto", choices=["auto", "lightgbm", "sklearn"])
     n.set_defaults(func=lambda a: nightly_main(dry_run=a.dry_run, engine=a.engine))
+
+    d = sub.add_parser("demo-reset", help="reset the public demo account and reload its sample shop")
+    d.add_argument("--dry-run", action="store_true", help="plan the reset, but call nothing")
+    d.set_defaults(func=lambda a: demo_main(dry_run=a.dry_run))
 
     s = sub.add_parser("synth", help="write the synthetic dataset as CSV")
     s.add_argument("--out", default="synthetic-sales.csv")

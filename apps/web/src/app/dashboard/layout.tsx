@@ -32,6 +32,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
         ) : null}
       </header>
 
+      {ctx.isDemo ? (
+        <div role="note" className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-sm text-amber-900">
+          You&apos;re in the <strong>public demo</strong>: sample data that resets every night.{" "}
+          <a href="/signup" className="font-semibold underline underline-offset-2">
+            Create your own shop
+          </a>
+        </div>
+      ) : null}
+
       <main id="main" className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         {ctx.shop ? children : <Onboarding name={ctx.user.name} invites={ctx.pendingInvites} />}
       </main>
