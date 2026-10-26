@@ -1,0 +1,41 @@
+name: Screenshots
+
+# Logs in to the live site as the demo user, saves desktop and mobile screenshots, and pushes them
+# to the `m5-screenshots` branch (open a PR from it, or copy docs/screenshots into your branch).
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Site to capture"
+        default: "https://stocksense-phi-tan.vercel.app"
+
+permissions:
+  contents: write
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Install Playwright
+        run: |
+          npm install --no-save --no-package-lock --prefix scripts playwright@1.56.1
+          npx --prefix scripts playwright install --with-deps chromium
+      - name: Capture
+        run: node scripts/screenshots.mjs "${{ inputs.url }}" docs/screenshots 2>&1 | tee screenshots.log
+      - name: Publish to branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B m5-screenshots
+          git add -f docs/screenshots
+          git commit -m "Screenshots of the demo shop"
+          git push --force origin m5-screenshots
+      - name: Summary
+        if: ${{ !cancelled() }}
+        run: |
+          [ -f screenshots.log ] && echo "::notice title=screenshots::$(tail -15 screenshots.log | sed -e 's/%/%25/g' | sed -e ':a;N;$!ba;s/\n/%0A/g')"

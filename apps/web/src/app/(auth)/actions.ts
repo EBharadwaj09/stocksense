@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { friendlyAuthError } from "@/lib/auth-errors";
+import { DEMO_ACCOUNT, isDemoUser } from "@/lib/demo";
 import { log } from "@/lib/log";
 import { safeRedirectPath } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
@@ -90,10 +91,31 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
   redirect(safeRedirectPath(String(formData.get("next") ?? "")));
 }
 
+/** One-tap sign-in to the public demo shop (credentials are public by design; see lib/demo.ts). */
+export async function signInDemo(): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({
+    email: DEMO_ACCOUNT.email,
+    password: DEMO_ACCOUNT.password,
+  });
+  if (error) {
+    log("warn", "auth.demo_signin_failed", { code: error.code, status: error.status });
+    redirect("/login?error=demo_unavailable");
+  }
+  redirect("/dashboard");
+}
+
 export async function requestPasswordReset(_prev: AuthState, formData: FormData): Promise<AuthState> {
   const values = { email: String(formData.get("email") ?? "") };
   const parsed = forgotPasswordSchema.safeParse(values);
   if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error), values };
+
+  // The demo address can't receive mail; don't send (and bounce) a reset email to it.
+  if (parsed.data.email === DEMO_ACCOUNT.email) {
+    return {
+      notice: `If ${parsed.data.email} has a StockSense account, we've sent it a link to choose a new password. The link works once and expires in an hour.`,
+    };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
@@ -124,6 +146,7 @@ export async function updatePassword(_prev: AuthState, formData: FormData): Prom
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { formError: "Your reset link has expired. Request a new one below." };
+  if (isDemoUser(user)) return { formError: "The demo account's password can't be changed." };
 
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) {

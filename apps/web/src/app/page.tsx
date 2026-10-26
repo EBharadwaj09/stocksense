@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
+import { DemoButton } from "./(auth)/login/DemoButton";
 
 const features = [
   { title: "Know what's selling", body: "Record sales and stock in seconds, or import last year's sales from a spreadsheet." },
@@ -40,6 +41,9 @@ export default function HomePage() {
             <Link href="/login" className="rounded-lg border border-slate-300 bg-white px-5 py-3 font-semibold hover:bg-slate-50">
               I already have an account
             </Link>
+          </div>
+          <div className="mt-4 max-w-xs">
+            <DemoButton />
           </div>
         </section>
 

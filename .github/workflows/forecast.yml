@@ -1,6 +1,7 @@
 name: Nightly forecast
 
-# Trains the forecasting model per shop and writes the next 14 days into Supabase.
+# Resets the public demo account, then trains the forecasting model per shop and writes the next
+# 14 days into Supabase.
 # Needs the repository secret SUPABASE_SECRET_KEY (Supabase → Project Settings → API Keys → secret key).
 on:
   schedule:
@@ -44,6 +45,12 @@ jobs:
             echo "::error::Add the SUPABASE_SECRET_KEY repository secret (see HANDOFF.md)."
             exit 1
           fi
+      - name: Reset demo account
+        # A failure here must not stop real shops from getting forecasts.
+        if: ${{ !inputs.dry_run }}
+        continue-on-error: true
+        working-directory: ml
+        run: python -m stocksense_ml demo-reset 2>&1 | tee demo.log
       - name: Forecast all shops
         working-directory: ml
         run: python -m stocksense_ml nightly --engine lightgbm ${{ inputs.dry_run && '--dry-run' || '' }} 2>&1 | tee nightly.log
@@ -52,5 +59,7 @@ jobs:
         working-directory: ml
         run: |
           [ -f nightly.log ] || exit 0
-          { echo '### Nightly forecast'; echo '```'; grep -E "shop |done:|ERROR|Error" nightly.log || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          { echo '### Nightly forecast'; echo '```'; cat demo.log 2>/dev/null | grep -E "demo|ERROR|Error|failed" || true
+            grep -E "shop |done:|ERROR|Error" nightly.log || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          [ -f demo.log ] && echo "::notice title=demo::$(grep -E 'demo shop ready|ERROR|Error|failed' demo.log | tail -3 | sed -e 's/%/%25/g' | sed -e ':a;N;$!ba;s/\n/%0A/g')"
           echo "::notice title=nightly::$(grep -E 'done:|ERROR|Error' nightly.log | tail -5 | sed -e 's/%/%25/g' | sed -e ':a;N;$!ba;s/\n/%0A/g')"
