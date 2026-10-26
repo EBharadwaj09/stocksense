@@ -42,7 +42,7 @@ async def request_context(request: Request, call_next):
     start = time.perf_counter()
     try:
         response = await call_next(request)
-    except Exception:
+    except Exception:  # noqa: BLE001 — last-resort handler: log it, return a safe 500
         logger.exception("request.unhandled_error", extra={"path": request.url.path})
         response = JSONResponse(
             status_code=500,
