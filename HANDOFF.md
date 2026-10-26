@@ -4,7 +4,7 @@ Read this first in any new chat or tool session, then update it at the end.
 
 ## Current milestone
 
-**P1 StockSense · M2 Core app** — done; M3 (forecasting model) next. M1 summary kept below.
+**P1 StockSense · M3 Model** — built on branch `m3-forecasting` (PR #3, CI green); merges when the owner approves. M4 (serving) next. M2 and M1 summaries kept below.
 
 Acceptance criteria:
 
@@ -18,6 +18,15 @@ Acceptance criteria:
 - Supabase project `stocksense` (ref `jhiaiqhnidyqgagchzbp`, region ap-south-1, Free plan); new asymmetric JWT signing keys.
 - Vercel project `stocksense` (root `apps/web`, Hobby plan); auto-deploys `main`.
 - Render web service `stocksense-api` (Singapore, Free plan): https://stocksense-api-416u.onrender.com; auto-deploys `main`.
+
+## M3 done (2026-10-26, PR #3)
+
+- `ml/` package (`ml/README.md` explains it): loader (import CSV, `daily_sales`/`sales` exports, Kaggle), zero-filled daily panel, festival calendar (`ml/stocksense_ml/festivals.csv`, 2024–2027 — add 2028 dates next year), direct multi-horizon features (14 days), 4 baselines, LightGBM Poisson model, 8-origin weekly rolling backtest (MAE, WAPE, bias, festive-day WAPE).
+- `make train` → `ml/reports/metrics.md` + `metrics.json` (committed copy is from CI, LightGBM 4.7.0). `make forecast` → next 14 days CSV.
+- Results (LightGBM vs best baseline, WAPE): sample 1-year 24.5% vs 26.5% (7.6% lower); synthetic 3-year 21.0% vs 25.3% (17.1% lower; festive days 20.9% vs 27.4%+). Both datasets synthetic — real accuracy unknown until real shop history.
+- 12 pytest cases incl. a no-leakage test (future values corrupted, features unchanged).
+- Supabase: `daily_sales` view (security_invoker, anon revoked) applied to the live project; totals match `sales` exactly; `rls_test.sql` extended and passes on the live project; types regenerated.
+- CI: new `ML (lint, test, backtest)` job; failure output and metrics are published as annotations (the build sandbox cannot download CI logs/artifacts).
 
 ## M2 done (2026-10-26)
 
@@ -46,12 +55,15 @@ Acceptance criteria:
 
 ## Open issues
 
+- LightGBM cannot be installed in the build sandbox; locally the pipeline runs with `--engine sklearn` (HistGradientBoosting). CI is the source of truth for LightGBM metrics.
+- Kaggle real-data benchmark not run (needs a Kaggle login to download); command is in `ml/README.md`.
+
 - The build environment that writes code here has no package registry access, so CI is the verification gate for every change.
 - No lockfile yet; CI generates one with `npm install`. Commit `apps/web/package-lock.json` after the first green run.
 
 ## Next task
 
-M3 Model: daily sales per product from `sales` (manual + imported), naive and moving-average baselines, LightGBM with lag/calendar/festival features, rolling-origin backtests (MAE, WAPE), `make train` reproducing the metrics table. Needs sample data: Kaggle Store Item Demand or M5 until real shop history exists.
+M4 Serving: forecast endpoint in the Render API (read `daily_sales` with the user's JWT, run the M3 model), nightly retraining, and a reorder list (forecast demand over lead time vs on-hand stock and reorder point) shown on the dashboard. Check Render free-plan memory with LightGBM + pandas installed.
 
 Workflow: schema changes = new file in `supabase/migrations/` + apply with the Supabase connector + regenerate `apps/web/src/lib/database.types.ts`. Feature work on a branch → PR → CI green → merge (Vercel deploys main).
 

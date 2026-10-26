@@ -1,4 +1,4 @@
--- Row-level security tests for the M2 schema.
+-- Row-level security tests for the M2 schema and the M3 daily_sales view.
 -- Runs entirely inside one transaction and always rolls back: on success it
 -- raises 'ALL_RLS_TESTS_PASSED'; on failure it raises 'FAIL: <which check>'.
 -- Run with the Supabase SQL editor or the Supabase connector's execute_sql.
@@ -84,6 +84,8 @@ begin
   perform public.record_sale(product_a, 3, 250);
   select on_hand into v from public.product_stock where product_id = product_a;
   if v <> 7 then raise exception 'FAIL: stock after sale is %, expected 7', v; end if;
+  select coalesce(sum(quantity), 0) into v from public.daily_sales where product_id = product_a;
+  if v <> 3 then raise exception 'FAIL: daily_sales shows %, expected 3', v; end if;
 
   update public.products set reorder_point = 0 where id = product_a;
   get diagnostics n = row_count;
@@ -130,6 +132,15 @@ begin
   -- Imported history does not change current stock.
   select on_hand into v from public.product_stock where product_id = product_a;
   if v <> 7 then raise exception 'FAIL: import changed stock to %', v; end if;
+  -- Daily totals include imported days, and other shops still cannot see them.
+  select count(*) into n from public.daily_sales where shop_id = shop_a;
+  if n <> 4 then raise exception 'FAIL: owner sees % daily_sales rows, expected 4', n; end if;
+  perform set_config('request.jwt.claims', json_build_object('sub', b, 'role', 'authenticated',
+    'email', 'owner-b@test.local')::text, true);
+  select count(*) into n from public.daily_sales where shop_id = shop_a;
+  if n <> 0 then raise exception 'FAIL: B can see shop A daily sales'; end if;
+  perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated',
+    'email', 'owner-a@test.local')::text, true);
 
   -- Owner can remove staff.
   delete from public.shop_members where shop_id = shop_a and user_id = c;
@@ -144,6 +155,12 @@ begin
   exception when insufficient_privilege then failed := true;
   end;
   if not failed then raise exception 'FAIL: anon can read products'; end if;
+  failed := false;
+  begin
+    perform 1 from public.daily_sales limit 1;
+  exception when insufficient_privilege then failed := true;
+  end;
+  if not failed then raise exception 'FAIL: anon can read daily_sales'; end if;
 
   raise exception 'ALL_RLS_TESTS_PASSED';
 end;

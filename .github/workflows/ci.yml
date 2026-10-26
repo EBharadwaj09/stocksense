@@ -63,3 +63,50 @@ jobs:
       - name: Tests
         if: ${{ !cancelled() }}
         run: pytest -rA
+
+  ml:
+    name: ML (lint, test, backtest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash # explicit bash adds -o pipefail, so `make ... | tee` still fails on errors
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: ml/requirements-dev.txt
+      - name: Install
+        run: make ml-install
+      - name: Lint
+        working-directory: ml
+        run: ruff check --output-format=github .
+      - name: Tests
+        if: ${{ !cancelled() }}
+        run: make ml-test 2>&1 | tee ml-test.log
+      - name: Backtest (make train)
+        if: ${{ !cancelled() }}
+        run: make train 2>&1 | tee ml-train.log
+      - name: Show failure output
+        if: ${{ failure() }}
+        run: |
+          for f in ml-test.log ml-train.log; do
+            [ -f "$f" ] || continue
+            msg=$(tail -n 60 "$f" | sed -e 's/%/%25/g' | sed -e ':a;N;$!ba;s/\n/%0A/g')
+            echo "::error title=$f::$msg"
+          done
+      - name: Metrics summary
+        if: ${{ !cancelled() }}
+        run: |
+          cat ml/reports/metrics.md >> "$GITHUB_STEP_SUMMARY"
+          # also as annotations, readable through the API without downloading artifacts
+          for f in metrics.md metrics.json; do
+            echo "::notice title=$f::$(sed -e 's/%/%25/g' "ml/reports/$f" | sed -e ':a;N;$!ba;s/\n/%0A/g')"
+          done
+          git diff --quiet -- ml/reports || echo "::notice::Metrics differ from the committed ml/reports (expected after model changes)."
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: ml-reports
+          path: ml/reports/

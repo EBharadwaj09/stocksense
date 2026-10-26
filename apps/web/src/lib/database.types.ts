@@ -276,6 +276,17 @@ export type Database = {
       };
     };
     Views: {
+      daily_sales: {
+        Row: {
+          day: string | null;
+          lines: number | null;
+          product_id: string | null;
+          quantity: number | null;
+          revenue: number | null;
+          shop_id: string | null;
+        };
+        Relationships: [];
+      };
       product_stock: {
         Row: {
           on_hand: number | null;
