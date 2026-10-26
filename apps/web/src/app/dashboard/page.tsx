@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getForecasts, getProductsWithStock, isLowStock, todayIn } from "@/lib/data";
-import { planReorder } from "@/lib/reorder";
+import { compareUrgency, planReorder } from "@/lib/reorder";
 import { daysAgoIso, formatDate, formatMoney, formatQty, getShopContext } from "@/lib/shop";
 import { createClient } from "@/lib/supabase/server";
 
@@ -27,12 +27,18 @@ export default async function OverviewPage() {
   ]);
 
   const names = new Map(products.map((p) => [p.id, p]));
-  const lowStock = products.filter(isLowStock);
-  const orderNow = products.filter(
-    (p) =>
-      planReorder({ onHand: p.onHand, leadTimeDays: p.leadTimeDays, reorderPoint: p.reorderPoint, forecast: byProduct.get(p.id) ?? [] })
-        .status === "order_now",
-  ).length;
+  // One rule everywhere: with a forecast, the reorder plan decides; without one, the reorder point does.
+  const plans = products.map((p) => {
+    const forecast = byProduct.get(p.id) ?? [];
+    const plan = planReorder({ onHand: p.onHand, leadTimeDays: p.leadTimeDays, reorderPoint: p.reorderPoint, forecast });
+    const urgent = plan.status === "no_forecast" ? isLowStock(p) : plan.status === "order_now";
+    return { product: p, plan, urgent };
+  });
+  const needsReorder = plans
+    .filter((r) => r.urgent)
+    .sort((a, b) => compareUrgency(a.plan, b.plan) || a.product.name.localeCompare(b.product.name));
+  const orderSoon = plans.filter((r) => r.plan.status === "order_soon").length;
+  const hasForecast = byProduct.size > 0;
   const weekRevenue = (weekSales ?? []).reduce((sum, s) => sum + Number(s.quantity) * Number(s.unit_price ?? 0), 0);
 
   if (products.length === 0) {
@@ -64,39 +70,56 @@ export default async function OverviewPage() {
 
       <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Products" value={String(products.length)} />
-        <Stat label="Running low" value={String(lowStock.length)} tone={lowStock.length > 0 ? "warn" : "ok"} />
         <Stat
-          label="Order now (forecast)"
-          value={byProduct.size === 0 ? "—" : String(orderNow)}
-          tone={orderNow > 0 ? "warn" : "ok"}
+          label="Order now"
+          value={String(needsReorder.length)}
+          tone={needsReorder.length > 0 ? "warn" : "ok"}
           href="/dashboard/reorder"
         />
+        <Stat label="Order soon" value={hasForecast ? String(orderSoon) : "—"} href="/dashboard/reorder" />
         <Stat label="Sales, last 7 days" value={formatMoney(weekRevenue, shop.currency)} />
       </dl>
 
       <section aria-labelledby="low-heading" className="rounded-xl border border-slate-200 bg-white">
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
           <h2 id="low-heading" className="font-semibold text-brand-900">
-            Running low
+            Order now
           </h2>
-          <Link href="/dashboard/stock" className="text-sm font-semibold text-brand-700 underline underline-offset-2">
-            Add stock
+          <Link href="/dashboard/reorder" className="text-sm font-semibold text-brand-700 underline underline-offset-2">
+            Full reorder list
           </Link>
         </div>
-        {lowStock.length === 0 ? (
-          <p className="px-5 py-6 text-sm text-slate-600">Nothing is at or below its reorder point.</p>
+        {needsReorder.length === 0 ? (
+          <p className="px-5 py-6 text-sm text-slate-600">
+            {hasForecast
+              ? "Nothing needs ordering right now."
+              : "Nothing is at or below its reorder point. Sales forecasts appear after the nightly run."}
+          </p>
         ) : (
           <ul className="divide-y divide-slate-100">
-            {lowStock.map((p) => (
-              <li key={p.id} className="flex items-center justify-between px-5 py-3 text-sm">
+            {needsReorder.slice(0, 8).map(({ product: p, plan }) => (
+              <li key={p.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-5 py-3 text-sm">
                 <span className="font-medium text-slate-900">{p.name}</span>
                 <span className="text-amber-800">
-                  {formatQty(p.onHand)} {p.unit} left · reorder at {formatQty(p.reorderPoint)}
+                  {formatQty(p.onHand)} {p.unit} left
+                  {plan.daysLeft !== null ? ` · ${plan.daysLeft === 0 ? "runs out today" : `about ${plan.daysLeft} days`}` : ""}
+                  {plan.suggestedQty > 0
+                    ? ` · order ${formatQty(plan.suggestedQty)} ${p.unit}`
+                    : ` · reorder at ${formatQty(p.reorderPoint)}`}
                 </span>
               </li>
             ))}
           </ul>
         )}
+        {needsReorder.length > 8 ? (
+          <p className="border-t border-slate-100 px-5 py-3 text-sm text-slate-600">
+            and {needsReorder.length - 8} more on the{" "}
+            <Link href="/dashboard/reorder" className="font-semibold text-brand-700 underline">
+              reorder list
+            </Link>
+            .
+          </p>
+        ) : null}
       </section>
 
       <section aria-labelledby="recent-heading" className="rounded-xl border border-slate-200 bg-white">
