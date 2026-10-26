@@ -57,6 +57,13 @@ begin
   end;
   if not failed then raise exception 'FAIL: B recorded a sale in shop A'; end if;
 
+  failed := false;
+  begin
+    perform public.import_sales(shop_a, '[{"row":2,"sku":"TEA1","quantity":1,"sold_at":"2026-01-01"}]'::jsonb);
+  exception when insufficient_privilege then failed := true;
+  end;
+  if not failed then raise exception 'FAIL: B imported into shop A'; end if;
+
   update public.products set reorder_point = 999 where id = product_a;
   get diagnostics n = row_count;
   if n <> 0 then raise exception 'FAIL: B updated a shop A product'; end if;
@@ -105,15 +112,18 @@ begin
   get diagnostics n = row_count;
   if n <> 0 then raise exception 'FAIL: staff removed the owner'; end if;
 
-  -- 5. Owner import: one good row (creates product), one bad quantity, one future date.
+  -- 5. Owner import: new product row, bad quantity, future date, and case-insensitive matches.
   perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated',
     'email', 'owner-a@test.local')::text, true);
   res := public.import_sales(shop_a, jsonb_build_array(
     jsonb_build_object('row', 2, 'sku', 'RICE5', 'name', 'Rice 5kg', 'quantity', 4, 'unit_price', 300, 'sold_at', '2026-01-05'),
     jsonb_build_object('row', 3, 'sku', 'TEA1', 'quantity', 0, 'sold_at', '2026-01-06'),
-    jsonb_build_object('row', 4, 'sku', 'TEA1', 'quantity', 2, 'sold_at', '2099-01-01')
+    jsonb_build_object('row', 4, 'sku', 'TEA1', 'quantity', 2, 'sold_at', '2099-01-01'),
+    -- matching is case-insensitive, by name when there is no code
+    jsonb_build_object('row', 5, 'name', 'tea 1KG', 'quantity', 1, 'sold_at', '2026-01-07'),
+    jsonb_build_object('row', 6, 'sku', 'tea1', 'quantity', 2, 'sold_at', '2026-01-08')
   ));
-  if (res ->> 'inserted')::int <> 1 or (res ->> 'created_products')::int <> 1
+  if (res ->> 'inserted')::int <> 3 or (res ->> 'created_products')::int <> 1
      or jsonb_array_length(res -> 'errors') <> 2 then
     raise exception 'FAIL: unexpected import result %', res;
   end if;
