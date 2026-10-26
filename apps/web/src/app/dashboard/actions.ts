@@ -7,6 +7,7 @@ import type { Json } from "@/lib/database.types";
 import { friendlyDbError } from "@/lib/db-errors";
 import { IMPORT_CHUNK_SIZE, type RowError } from "@/lib/import";
 import { log } from "@/lib/log";
+import { planStockCount } from "@/lib/stock-count";
 import { inviteSchema, productSchema, saleSchema, shopNameSchema, stockSchema, todayInIndia } from "@/lib/schemas";
 import { getShopContext, requireShop } from "@/lib/shop";
 import { createClient } from "@/lib/supabase/server";
@@ -149,6 +150,55 @@ export async function recordStock(_prev: ActionState, formData: FormData): Promi
   }
   refresh();
   return { notice: "Stock updated.", values: { productId: m.productId, reason: m.reason }, savedAt: Date.now() };
+}
+
+/**
+ * Stock count: store the difference between what was counted and the recorded stock.
+ * The current stock is re-read here, so a sale recorded while the form was open is not counted twice.
+ */
+export async function recordStockCount(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const ctx = await requireShop();
+  const entries = [...formData.entries()].map(([k, v]) => [k, String(v)] as [string, string]);
+  const values = Object.fromEntries(entries);
+  const supabase = await createClient();
+  const { data: stock, error: stockError } = await supabase
+    .from("product_stock")
+    .select("product_id, on_hand")
+    .eq("shop_id", ctx.shop.id);
+  if (stockError) return { formError: "Could not load current stock. Please try again.", values };
+
+  const onHand = new Map((stock ?? []).map((s) => [String(s.product_id), Number(s.on_hand ?? 0)]));
+  const plan = planStockCount(entries, onHand);
+  if (Object.keys(plan.errors).length > 0) {
+    return { fieldErrors: plan.errors, formError: "Fix the highlighted counts and save again.", values };
+  }
+  if (plan.movements.length === 0) {
+    return {
+      notice: plan.unchanged > 0 ? "Counts match the recorded stock. Nothing to change." : "Enter at least one count.",
+      values,
+    };
+  }
+
+  const { error } = await supabase.from("stock_movements").insert(
+    plan.movements.map((m) => ({
+      shop_id: ctx.shop.id,
+      product_id: m.productId,
+      quantity: m.quantity,
+      reason: m.reason,
+      note: "Stock count",
+      created_by: ctx.user.id,
+    })),
+  );
+  if (error) {
+    log("warn", "stock.count_failed", { code: error.code, rows: plan.movements.length });
+    return { formError: friendlyDbError(error), values };
+  }
+  refresh();
+  const n = plan.movements.length;
+  return {
+    notice: `Saved. Stock updated for ${n} product${n === 1 ? "" : "s"}${plan.unchanged ? `; ${plan.unchanged} already matched` : ""}.`,
+    savedAt: Date.now(),
+  };
 }
 
 // ------------------------------------------------------------------ team

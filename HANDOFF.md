@@ -4,23 +4,32 @@ Read this first in any new chat or tool session, then update it at the end.
 
 ## Current milestone
 
-**P1 StockSense · M4 Serving** — in progress on branch `m4-serving`. M3 merged (PR #3).
+**P1 StockSense · M5 Release** — in progress on branch `m5-release`. M4 merged (PR #4) and verified by the owner 2026-10-26.
 
-Acceptance criteria:
+M5 plan:
 
-- [x] `forecasts` + `forecast_runs` tables live in Supabase (members read, only the job writes); RLS test passes on the live project
-- [x] Nightly job (`ml/stocksense_ml/nightly.py`, `.github/workflows/forecast.yml`) with 5 fake-Supabase tests
-- [x] Reorder page + Overview "Order now" stat; reorder rules unit-tested (`apps/web/src/lib/reorder.ts`)
-- [ ] Owner adds GitHub secret `SUPABASE_SECRET_KEY`, first manual run writes forecasts for the live shop
-- [ ] Owner checks the Reorder page on the live site
-
-Decision: no model on Render. A forecast run peaks at ~270 MB (Render free = 512 MB, sleeps, no disk), so forecasts are precomputed nightly in GitHub Actions and read straight from Supabase. ₹0.
+- [x] Overview uses the same reorder rule as the Reorder page ("Order now" / "Order soon"; reorder point only when there is no forecast)
+- [x] Stock count page (`/dashboard/stock/count`): type shelf counts for any products, difference saved as opening/adjustment movements; Reorder page points to it when no stock is recorded. Rules tested in `apps/web/src/lib/stock-count.ts`
+- [ ] Mobile + accessibility pass (keyboard, contrast, screen-reader labels)
+- [ ] End-to-end tests of the main flows (sign-up → shop → import → stock → reorder)
+- [ ] Final docs: README walkthrough, screenshots, limitations
+- [ ] Re-check sign-out/login on the live site; fix Render auto-deploy before any API change
 
 ## Deployments
 
 - Supabase project `stocksense` (ref `jhiaiqhnidyqgagchzbp`, region ap-south-1, Free plan); new asymmetric JWT signing keys.
 - Vercel project `stocksense` (root `apps/web`, Hobby plan); auto-deploys `main`.
 - Render web service `stocksense-api` (Singapore, Free plan): https://stocksense-api-416u.onrender.com; auto-deploys `main`.
+
+## M4 done (2026-10-26, PR #4)
+
+- No model on Render (a run peaks ~270 MB; free Render = 512 MB, sleeps, no disk). Forecasts are precomputed nightly by GitHub Actions (`.github/workflows/forecast.yml`, ~02:11 IST, manual + dry-run) and stored in Supabase.
+- Tables `forecasts` (product × day, 14 days) and `forecast_runs` (one row per shop); members read, only the job's secret key writes. RLS test extended; passes on the live project.
+- Job `ml/stocksense_ml/nightly.py`: per shop, `daily_sales` up to yesterday (shop time) → LightGBM (28-day average under 60 days of history) → upsert, then delete that shop's older rows. 5 tests with a fake Supabase.
+- Secret: GitHub repository secret `SUPABASE_SECRET_KEY` = Supabase secret key `github_nightly` (added by owner). Rotate in Supabase → API Keys if it ever leaks, then update the GitHub secret.
+- First run 2026-10-26: 1 shop, 30 products, 420 rows, LightGBM on 364 days; next-7-day total 2,848 vs recent pace 2,857.
+- Web: Reorder page (status, stock, next 7 days, days left, lead time, suggested order) + rules in `apps/web/src/lib/reorder.ts` (10 tests). Owner verified live: Amul Ghee 100 → Enough stock, 27 days; Sugar 48 → Order now, 1 day, 535.
+- Reorder rule: order now if stock ≤ demand over lead time + reorder point; order soon if ≤ demand over lead time + 7 days + reorder point; suggestion tops up to the latter.
 
 ## M3 done (2026-10-26, PR #3)
 
@@ -69,7 +78,7 @@ Decision: no model on Render. A forecast run peaks at ~270 MB (Render free = 512
 
 ## Next task
 
-Finish M4: owner adds the secret, run the workflow once, verify forecasts and the Reorder page live, merge. Then M5 (release: dashboard polish, accessibility pass, end-to-end tests, docs).
+M5: owner tries the stock count page on the PR preview/live site; then mobile + accessibility pass.
 
 Workflow: schema changes = new file in `supabase/migrations/` + apply with the Supabase connector + regenerate `apps/web/src/lib/database.types.ts`. Feature work on a branch → PR → CI green → merge (Vercel deploys main).
 
