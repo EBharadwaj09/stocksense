@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import type { Database } from "@/lib/database.types";
 import { getSupabaseConfig } from "@/lib/env";
 import { isProtectedPath } from "@/lib/routes";
 
@@ -11,7 +12,7 @@ export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
   const { url, key } = getSupabaseConfig();
 
-  const supabase = createServerClient(url, key, {
+  const supabase = createServerClient<Database>(url, key, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
