@@ -46,3 +46,62 @@ export async function getProductsWithStock(shopId: string, opts: { activeOnly?: 
 export function isLowStock(p: Pick<ProductWithStock, "onHand" | "reorderPoint" | "active">): boolean {
   return p.active && p.reorderPoint > 0 && p.onHand <= p.reorderPoint;
 }
+
+export type ForecastRun = {
+  generatedAt: string;
+  firstDay: string;
+  model: string;
+  historyDays: number;
+};
+
+/** Today's date (YYYY-MM-DD) in the shop's timezone. */
+export function todayIn(timezone: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" }).format(
+    new Date(),
+  );
+}
+
+/**
+ * Forecast units per product from `fromDay` onward (days in order), plus details of the last nightly run.
+ * The nightly job writes these; members can only read their own shop's rows.
+ */
+export async function getForecasts(
+  shopId: string,
+  fromDay: string,
+): Promise<{ byProduct: Map<string, number[]>; run: ForecastRun | null }> {
+  const supabase = await createClient();
+  const pageSize = 1000; // the API returns at most 1000 rows per request
+  const rows: { product_id: string; day: string; quantity: number }[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from("forecasts")
+      .select("product_id, day, quantity")
+      .eq("shop_id", shopId)
+      .gte("day", fromDay)
+      .order("product_id")
+      .order("day")
+      .range(from, from + pageSize - 1);
+    if (error) throw new Error(`Could not load forecasts: ${error.message}`);
+    rows.push(...(data ?? []));
+    if (!data || data.length < pageSize) break;
+  }
+  const { data: run, error: runError } = await supabase
+    .from("forecast_runs")
+    .select("generated_at, first_day, model, history_days")
+    .eq("shop_id", shopId)
+    .maybeSingle();
+  if (runError) throw new Error(`Could not load forecast status: ${runError.message}`);
+
+  const byProduct = new Map<string, number[]>();
+  for (const r of rows) {
+    const list = byProduct.get(r.product_id) ?? [];
+    list.push(Number(r.quantity));
+    byProduct.set(r.product_id, list);
+  }
+  return {
+    byProduct,
+    run: run
+      ? { generatedAt: run.generated_at, firstDay: run.first_day, model: run.model, historyDays: run.history_days }
+      : null,
+  };
+}

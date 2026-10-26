@@ -4,14 +4,17 @@ Read this first in any new chat or tool session, then update it at the end.
 
 ## Current milestone
 
-**P1 StockSense · M3 Model** — built on branch `m3-forecasting` (PR #3, CI green); merges when the owner approves. M4 (serving) next. M2 and M1 summaries kept below.
+**P1 StockSense · M4 Serving** — in progress on branch `m4-serving`. M3 merged (PR #3).
 
 Acceptance criteria:
 
-- [x] Sign-up and email confirmation work on the deployed Vercel URL (verified by owner 2026-10-26); sign-out/login re-check pending
-- [x] CI green on `main` (web: lint, 3 unit-test files, build, typecheck; API: ruff, 19 pytest cases)
-- [x] API live on Render (deploy status live). `/me` end-to-end from the web app gets exercised in M3 when the dashboard first calls the API
-- [ ] README setup reproduced on a clean machine (or Codespace) — deferred; CI covers install/build/test from scratch
+- [x] `forecasts` + `forecast_runs` tables live in Supabase (members read, only the job writes); RLS test passes on the live project
+- [x] Nightly job (`ml/stocksense_ml/nightly.py`, `.github/workflows/forecast.yml`) with 5 fake-Supabase tests
+- [x] Reorder page + Overview "Order now" stat; reorder rules unit-tested (`apps/web/src/lib/reorder.ts`)
+- [ ] Owner adds GitHub secret `SUPABASE_SECRET_KEY`, first manual run writes forecasts for the live shop
+- [ ] Owner checks the Reorder page on the live site
+
+Decision: no model on Render. A forecast run peaks at ~270 MB (Render free = 512 MB, sleeps, no disk), so forecasts are precomputed nightly in GitHub Actions and read straight from Supabase. ₹0.
 
 ## Deployments
 
@@ -55,6 +58,9 @@ Acceptance criteria:
 
 ## Open issues
 
+- Render auto-deploy is not firing: last deploy 2026-10-26 10:29 (API commit 6b84efa) although later commits hit `main`. Harmless while the API is unchanged; reconnect Render's GitHub app (or deploy manually) before the next API change.
+- GitHub pauses scheduled workflows after 60 days without repository activity; re-enable from the Actions tab if that happens.
+
 - LightGBM cannot be installed in the build sandbox; locally the pipeline runs with `--engine sklearn` (HistGradientBoosting). CI is the source of truth for LightGBM metrics.
 - Kaggle real-data benchmark not run (needs a Kaggle login to download); command is in `ml/README.md`.
 
@@ -63,7 +69,7 @@ Acceptance criteria:
 
 ## Next task
 
-M4 Serving: forecast endpoint in the Render API (read `daily_sales` with the user's JWT, run the M3 model), nightly retraining, and a reorder list (forecast demand over lead time vs on-hand stock and reorder point) shown on the dashboard. Check Render free-plan memory with LightGBM + pandas installed.
+Finish M4: owner adds the secret, run the workflow once, verify forecasts and the Reorder page live, merge. Then M5 (release: dashboard polish, accessibility pass, end-to-end tests, docs).
 
 Workflow: schema changes = new file in `supabase/migrations/` + apply with the Supabase connector + regenerate `apps/web/src/lib/database.types.ts`. Feature work on a branch → PR → CI green → merge (Vercel deploys main).
 

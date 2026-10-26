@@ -88,12 +88,18 @@ def read_sales(path: str | Path, max_series: int | None = None) -> tuple[pd.Data
     return df, skipped
 
 
-def build_panel(rows: pd.DataFrame, skipped: int = 0) -> Panel:
-    """Aggregate long rows to a (days x products) matrix with zero-filled gaps."""
+def build_panel(rows: pd.DataFrame, skipped: int = 0, end: str | pd.Timestamp | None = None) -> Panel:
+    """Aggregate long rows to a (days x products) matrix with zero-filled gaps.
+
+    ``end`` extends (with zeros) or cuts the history at that day, e.g. yesterday for a nightly run.
+    """
+    if end is not None:
+        rows = rows[rows["date"] <= pd.Timestamp(end)]
     if rows.empty:
         raise ValueError("No valid sales rows")
     wide = rows.pivot_table(index="date", columns="key", values="quantity", aggfunc="sum")
-    dates = pd.date_range(wide.index.min(), wide.index.max(), freq="D")
+    last = pd.Timestamp(end) if end is not None else wide.index.max()
+    dates = pd.date_range(wide.index.min(), last, freq="D")
     wide = wide.reindex(dates).fillna(0.0)
     first = rows.groupby("key")["date"].min()
     y = np.array(wide.to_numpy(dtype=float), copy=True)

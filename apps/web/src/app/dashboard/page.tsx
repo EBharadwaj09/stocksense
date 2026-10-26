@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getProductsWithStock, isLowStock } from "@/lib/data";
+import { getForecasts, getProductsWithStock, isLowStock, todayIn } from "@/lib/data";
+import { planReorder } from "@/lib/reorder";
 import { daysAgoIso, formatDate, formatMoney, formatQty, getShopContext } from "@/lib/shop";
 import { createClient } from "@/lib/supabase/server";
 
@@ -13,7 +14,7 @@ export default async function OverviewPage() {
   const supabase = await createClient();
   const since = daysAgoIso(7);
 
-  const [products, { data: recentSales }, { data: weekSales }] = await Promise.all([
+  const [products, { data: recentSales }, { data: weekSales }, { byProduct }] = await Promise.all([
     getProductsWithStock(shop.id, { activeOnly: true }),
     supabase
       .from("sales")
@@ -22,10 +23,16 @@ export default async function OverviewPage() {
       .order("sold_at", { ascending: false })
       .limit(8),
     supabase.from("sales").select("quantity, unit_price").eq("shop_id", shop.id).gte("sold_at", since),
+    getForecasts(shop.id, todayIn(shop.timezone)),
   ]);
 
   const names = new Map(products.map((p) => [p.id, p]));
   const lowStock = products.filter(isLowStock);
+  const orderNow = products.filter(
+    (p) =>
+      planReorder({ onHand: p.onHand, leadTimeDays: p.leadTimeDays, reorderPoint: p.reorderPoint, forecast: byProduct.get(p.id) ?? [] })
+        .status === "order_now",
+  ).length;
   const weekRevenue = (weekSales ?? []).reduce((sum, s) => sum + Number(s.quantity) * Number(s.unit_price ?? 0), 0);
 
   if (products.length === 0) {
@@ -55,9 +62,15 @@ export default async function OverviewPage() {
     <div className="space-y-8">
       <h1 className="text-2xl font-bold text-brand-900">Overview</h1>
 
-      <dl className="grid gap-4 sm:grid-cols-3">
+      <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Products" value={String(products.length)} />
         <Stat label="Running low" value={String(lowStock.length)} tone={lowStock.length > 0 ? "warn" : "ok"} />
+        <Stat
+          label="Order now (forecast)"
+          value={byProduct.size === 0 ? "—" : String(orderNow)}
+          tone={orderNow > 0 ? "warn" : "ok"}
+          href="/dashboard/reorder"
+        />
         <Stat label="Sales, last 7 days" value={formatMoney(weekRevenue, shop.currency)} />
       </dl>
 
@@ -114,10 +127,18 @@ export default async function OverviewPage() {
   );
 }
 
-function Stat({ label, value, tone }: { label: string; value: string; tone?: "ok" | "warn" }) {
+function Stat({ label, value, tone, href }: { label: string; value: string; tone?: "ok" | "warn"; href?: string }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5">
-      <dt className="text-sm text-slate-600">{label}</dt>
+      <dt className="text-sm text-slate-600">
+        {href ? (
+          <Link href={href} className="underline-offset-2 hover:underline">
+            {label}
+          </Link>
+        ) : (
+          label
+        )}
+      </dt>
       <dd className={`mt-1 text-2xl font-bold ${tone === "warn" ? "text-amber-700" : "text-brand-900"}`}>{value}</dd>
     </div>
   );

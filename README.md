@@ -102,7 +102,7 @@ The free Render plan sleeps when idle, so the first API request after a pause ca
 | M1 Template | Monorepo, CI, deploy pipeline, auth | Done |
 | M2 Core app | Shops, roles, products, stock, sales, CSV import | Done |
 | M3 Model | Baselines + LightGBM, backtests, reproducible training ([metrics](ml/reports/metrics.md)) | Done |
-| M4 Serving | Forecast API, nightly retraining, reorder list | — |
+| M4 Serving | Nightly forecasts (GitHub Actions → Supabase), reorder list | In progress |
 | M5 Release | Dashboard, accessibility pass, end-to-end tests, docs | — |
 
 ## License

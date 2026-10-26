@@ -1,4 +1,4 @@
--- Row-level security tests for the M2 schema and the M3 daily_sales view.
+-- Row-level security tests: M2 schema, M3 daily_sales view, M4 forecasts.
 -- Runs entirely inside one transaction and always rolls back: on success it
 -- raises 'ALL_RLS_TESTS_PASSED'; on failure it raises 'FAIL: <which check>'.
 -- Run with the Supabase SQL editor or the Supabase connector's execute_sql.
@@ -135,10 +135,35 @@ begin
   -- Daily totals include imported days, and other shops still cannot see them.
   select count(*) into n from public.daily_sales where shop_id = shop_a;
   if n <> 4 then raise exception 'FAIL: owner sees % daily_sales rows, expected 4', n; end if;
+
+  -- 5b. Forecasts are written only by the nightly job (as a privileged role); members can only read.
+  execute 'reset role';
+  insert into public.forecasts (shop_id, product_id, day, quantity) values (shop_a, product_a, current_date, 2.5);
+  insert into public.forecast_runs (shop_id, first_day, horizon_days, model) values (shop_a, current_date, 14, 'test');
+  execute 'set local role authenticated';
+  select count(*) into n from public.forecasts where shop_id = shop_a;
+  if n <> 1 then raise exception 'FAIL: owner cannot read forecasts'; end if;
+  failed := false;
+  begin
+    insert into public.forecasts (shop_id, product_id, day, quantity) values (shop_a, product_a, current_date + 1, 1);
+  exception when insufficient_privilege then failed := true;
+  end;
+  if not failed then raise exception 'FAIL: owner wrote a forecast'; end if;
+  failed := false;
+  begin
+    update public.forecast_runs set model = 'hacked' where shop_id = shop_a;
+  exception when insufficient_privilege then failed := true;
+  end;
+  if not failed then raise exception 'FAIL: owner changed a forecast run'; end if;
+
   perform set_config('request.jwt.claims', json_build_object('sub', b, 'role', 'authenticated',
     'email', 'owner-b@test.local')::text, true);
   select count(*) into n from public.daily_sales where shop_id = shop_a;
   if n <> 0 then raise exception 'FAIL: B can see shop A daily sales'; end if;
+  select count(*) into n from public.forecasts where shop_id = shop_a;
+  if n <> 0 then raise exception 'FAIL: B can see shop A forecasts'; end if;
+  select count(*) into n from public.forecast_runs where shop_id = shop_a;
+  if n <> 0 then raise exception 'FAIL: B can see shop A forecast runs'; end if;
   perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated',
     'email', 'owner-a@test.local')::text, true);
 

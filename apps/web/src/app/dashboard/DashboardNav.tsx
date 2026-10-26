@@ -7,6 +7,7 @@ const LINKS = [
   { href: "/dashboard", label: "Overview", ownerOnly: false },
   { href: "/dashboard/sales", label: "Sales", ownerOnly: false },
   { href: "/dashboard/stock", label: "Stock", ownerOnly: false },
+  { href: "/dashboard/reorder", label: "Reorder", ownerOnly: false },
   { href: "/dashboard/products", label: "Products", ownerOnly: false },
   { href: "/dashboard/import", label: "Import", ownerOnly: true },
   { href: "/dashboard/team", label: "Team", ownerOnly: true },
