@@ -58,10 +58,10 @@ def calendar_features(dates: pd.DatetimeIndex) -> pd.DataFrame:
 
     return pd.DataFrame(
         {
-            "dow": dates.dayofweek.to_numpy(),
+            "dow": dates.day_of_week.to_numpy(),
             "dom": dates.day.to_numpy(),
             "month": dates.month.to_numpy(),
-            "is_weekend": (dates.dayofweek >= 5).astype(int),
+            "is_weekend": (dates.day_of_week >= 5).astype(int),
             "fest_days_to": np.minimum(days_to, CAP_DAYS),
             "fest_days_since": np.minimum(days_since, CAP_DAYS),
             "fest_kind": kind,

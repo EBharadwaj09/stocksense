@@ -79,7 +79,7 @@ def generate(
     """Long sales rows ``date, sku, product, quantity`` (zero days omitted, like real exports)."""
     rng = np.random.default_rng(seed)
     dates = pd.date_range(start, end, freq="D")
-    doy = dates.dayofyear.to_numpy()
+    doy = dates.day_of_year.to_numpy()
     years = (dates - dates[0]).days.to_numpy() / 365.25
     out = []
     for sku, name, base, festive in CATALOGUE[:n_products]:
@@ -87,7 +87,7 @@ def generate(
         phase = rng.uniform(0, 2 * np.pi)
         lam = (
             level
-            * WEEKDAY[dates.dayofweek.to_numpy()]
+            * WEEKDAY[dates.day_of_week.to_numpy()]
             * (1 + 0.1 * np.sin(2 * np.pi * doy / 365.25 + phase))
             * (1 + rng.uniform(-0.05, 0.1) * years)
             * festival_multiplier(dates, festive, rng)
