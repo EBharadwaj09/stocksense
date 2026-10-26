@@ -33,25 +33,41 @@ def _version(pkg: str) -> str:
         return "not installed"
 
 
-def _load(spec: str, max_series: int | None) -> tuple[str, Panel]:
-    """``synthetic`` or a CSV path."""
+def _load(spec: str, max_series: int | None, label: str | None = None) -> tuple[str, Panel, bool]:
+    """``synthetic`` or a CSV path. Returns (label, panel, is_synthetic)."""
     if spec == "synthetic":
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "synthetic.csv"
             generate().to_csv(path, index=False)
-            return "Synthetic shop, ~3 years (generated, seed 7)", load_panel(path)
+            return label or "Synthetic shop, ~3 years (generated, seed 7)", load_panel(path), True
     path = Path(spec)
-    label = "Sample shop, 1 year (samples/)" if path.resolve() == SAMPLE else path.name
-    return label, load_panel(path, max_series=max_series)
+    if path.resolve() == SAMPLE:
+        return label or "Sample shop, 1 year (samples/)", load_panel(path, max_series=max_series), True
+    return label or path.name, load_panel(path, max_series=max_series), False
+
+
+def closing_note(synthetic: list[bool]) -> str:
+    """The honesty line under the tables: what kind of data the numbers come from."""
+    if all(synthetic):
+        return (
+            "Both datasets are synthetic. These numbers show the pipeline works and beats simple rules on "
+            "data with known patterns; accuracy on a real shop is only known once real sales history exists."
+            if len(synthetic) > 1
+            else "This dataset is synthetic. The numbers show the pipeline works and beats simple rules on data "
+            "with known patterns; accuracy on a real shop is only known once real sales history exists."
+        )
+    return (
+        "Datasets not marked synthetic are real sales history. Festival features use an Indian festival calendar, "
+        "so on non-Indian data they carry no signal and the festive-day column is empty."
+    )
 
 
 def _fmt_table(metrics: pd.DataFrame, best: str) -> str:
     lines = ["| Model | MAE (units/day) | WAPE | Bias | WAPE festive days |", "|---|---:|---:|---:|---:|"]
     for model, r in metrics.iterrows():
         name = f"**{model}**" if model == best else model
-        lines.append(
-            f"| {name} | {r['MAE']:.2f} | {r['WAPE']:.1%} | {r['Bias']:+.1%} | {r['WAPE festive days']:.1%} |"
-        )
+        festive = "—" if pd.isna(r["WAPE festive days"]) else f"{r['WAPE festive days']:.1%}"
+        lines.append(f"| {name} | {r['MAE']:.2f} | {r['WAPE']:.1%} | {r['Bias']:+.1%} | {festive} |")
     return "\n".join(lines)
 
 
@@ -100,13 +116,18 @@ def cmd_backtest(args: argparse.Namespace) -> int:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     specs = args.data or [str(SAMPLE), "synthetic"]
-    sections, datasets, engine = [], [], None
-    for spec in specs:
-        label, panel = _load(spec, args.max_series)
+    if args.label and len(args.label) != len(specs):
+        raise SystemExit("Give one --label per --data")
+    labels = args.label or [None] * len(specs)
+    sections, datasets, synthetic, engine = [], [], [], None
+    for spec, given in zip(specs, labels, strict=True):
+        label, panel, is_synth = _load(spec, args.max_series, given)
+        synthetic.append(is_synth)
         started = time.perf_counter()
         res = run_backtest(panel, n_origins=args.origins, step=7, horizon=args.horizon, engine=args.engine)
         engine = res.engine
         text, data = _section(label, panel, res, time.perf_counter() - started)
+        data["synthetic"] = is_synth
         sections.append(text)
         datasets.append(data)
         print(text, "\n", flush=True)
@@ -129,8 +150,7 @@ def cmd_backtest(args: argparse.Namespace) -> int:
             "and forecasts the next 14 days for every product.",
             "",
             *[s + "\n" for s in sections],
-            "Both datasets are synthetic. These numbers show the pipeline works and beats simple rules on "
-            "data with known patterns; accuracy on a real shop is only known once real sales history exists.",
+            closing_note(synthetic),
             "",
             f"Environment: {env}.",
             "",
@@ -162,6 +182,7 @@ def main(argv: list[str] | None = None) -> int:
 
     b = sub.add_parser("backtest", help="rolling-origin backtest, writes the metrics report")
     b.add_argument("--data", action="append", help="CSV path or 'synthetic' (repeatable; default: sample + synthetic)")
+    b.add_argument("--label", action="append", help="report heading per --data (repeatable, same order)")
     b.add_argument("--out", default="reports")
     b.add_argument("--origins", type=int, default=8)
     b.add_argument("--horizon", type=int, default=14)

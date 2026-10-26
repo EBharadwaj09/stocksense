@@ -1,0 +1,83 @@
+name: Real-data benchmark
+
+# Backtests the forecasting model on Kaggle's "Store Item Demand Forecasting Challenge" (real sales,
+# 10 stores x 50 items, 2013-2017) and pushes the report (never the data) to the `m5-benchmark` branch.
+#
+# Needs the repository secret KAGGLE_JSON: the contents of kaggle.json (Kaggle -> Settings -> API ->
+# Create Legacy API Key) or a Kaggle API token. Your Kaggle account must have accepted the competition
+# rules once: https://www.kaggle.com/competitions/demand-forecasting-kernels-only/rules
+on:
+  workflow_dispatch:
+    inputs:
+      max_series:
+        description: "Store-item series to use (500 = all)"
+        default: "500"
+
+permissions:
+  contents: write
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: ml/requirements-dev.txt
+      - name: Install
+        run: make ml-install && pip install "kaggle>=1.7,<2"
+      - name: Kaggle credentials
+        env:
+          KAGGLE_JSON: ${{ secrets.KAGGLE_JSON }}
+        run: |
+          if [ -z "$KAGGLE_JSON" ]; then
+            echo "::error::Add the KAGGLE_JSON repository secret (see the comment at the top of this file)."
+            exit 1
+          fi
+          mkdir -p ~/.kaggle
+          if python -c 'import json,os,sys; d=json.loads(os.environ["KAGGLE_JSON"]); sys.exit(0 if {"username","key"} <= d.keys() else 1)' 2>/dev/null; then
+            printf '%s' "$KAGGLE_JSON" > ~/.kaggle/kaggle.json   # legacy key file
+            chmod 600 ~/.kaggle/kaggle.json
+          else
+            echo "KAGGLE_API_TOKEN=$(printf '%s' "$KAGGLE_JSON" | tr -d '[:space:]')" >> "$GITHUB_ENV"   # new-style token
+          fi
+      - name: Download data
+        run: |
+          mkdir -p "$RUNNER_TEMP/kaggle"
+          kaggle competitions download -c demand-forecasting-kernels-only -f train.csv -p "$RUNNER_TEMP/kaggle" 2>&1 | tail -5
+          cd "$RUNNER_TEMP/kaggle" && { [ -f train.csv.zip ] && unzip -o -q train.csv.zip || true; }
+          ls -la "$RUNNER_TEMP/kaggle"
+          head -3 "$RUNNER_TEMP/kaggle/train.csv"
+          echo "rows: $(($(wc -l < "$RUNNER_TEMP/kaggle/train.csv") - 1))"
+      - name: Backtest
+        working-directory: ml
+        run: |
+          python -m stocksense_ml backtest --engine lightgbm \
+            --data "$RUNNER_TEMP/kaggle/train.csv" \
+            --label "Kaggle Store Item Demand (real sales, 10 stores x 50 items, 2013-2017)" \
+            --max-series "${{ inputs.max_series }}" \
+            --out reports-kaggle 2>&1 | tee benchmark.log
+      - name: Report as annotations
+        if: ${{ !cancelled() }}
+        working-directory: ml
+        run: |
+          [ -f reports-kaggle/metrics.md ] && cat reports-kaggle/metrics.md >> "$GITHUB_STEP_SUMMARY"
+          for f in reports-kaggle/metrics.md benchmark.log; do
+            [ -f "$f" ] || continue
+            echo "::notice title=$f::$(tail -n 40 "$f" | sed -e 's/%/%25/g' | sed -e ':a;N;$!ba;s/\n/%0A/g')"
+          done
+      - name: Publish report to branch
+        working-directory: ml
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B m5-benchmark
+          git add -f reports-kaggle/metrics.md reports-kaggle/metrics.json
+          git commit -m "Kaggle Store Item Demand benchmark report"
+          git push --force origin m5-benchmark
