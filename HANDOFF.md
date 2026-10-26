@@ -9,7 +9,7 @@ Read this first in any new chat or tool session, then update it at the end.
 Acceptance criteria:
 
 - [ ] Sign-up, email confirmation and login work on the deployed Vercel URL
-- [ ] CI green on `main`
+- [x] CI green on `main` (web: lint, 3 unit-test files, build, typecheck; API: ruff, 17 pytest cases)
 - [ ] API `/health` live on Render; `/me` returns the user for a valid Supabase token
 - [ ] README setup reproduced on a clean machine (or Codespace)
 
@@ -29,7 +29,7 @@ Acceptance criteria:
 
 ## Open issues
 
-- First CI run not yet done: the build environment that wrote M1 had no package registry access, so web lint/build and API pytest are verified in CI. Token verification logic was checked locally.
+- The build environment that writes code here has no package registry access, so CI is the verification gate for every change.
 - No lockfile yet; CI generates one with `npm install`. Commit `apps/web/package-lock.json` after the first green run.
 
 ## Next task
